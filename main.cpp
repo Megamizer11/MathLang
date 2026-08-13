@@ -6,6 +6,7 @@
 
 #include "Lexer.h"
 #include "Parser.h"
+#include "Runner.h"
 
 using std::ifstream;
 using std::stringstream;
@@ -27,12 +28,19 @@ string readFromFile(std::string name) {
 
 // class B : public A { public: void pr() override { std::cout << "B" << std::endl; } };
 
+// void pr(A* a) { std::cout << "A" << std::endl; }
+
+// void pr(B* b) { std::cout << "B" << std::endl; }
+
 int main() {
     string code = readFromFile("code.mthl");
     Lexer lexer = Lexer(code, true);
     Parser parser = Parser(lexer.tokenList, true);
+    Runner runner = Runner(parser.rootNode);
+    runner.run();
     // A* b = new B();
-    // b->pr();
+    // b->pr();  // B
+    // pr(b);    // A
     // delete b;
     return 0;
 }

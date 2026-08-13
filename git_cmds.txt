@@ -1,3 +1,5 @@
 git add .
 git commit -m "commit description"
 git push -u origin main
+
+git pull origin main

@@ -4,16 +4,19 @@
 #include <memory>
 
 #include "tokens.h"
+#include "RunValues.h"  // Зависимости AST от runtime быть не должно, это временное (наверное) решение
 
 class BaseNode {
 public:
     virtual ~BaseNode() = default;  // нужно, чтобы работал dynamic_cast    
     virtual void print(int);
+    virtual Value runNode(VariableScope&);
 };
 
 class ExpressionNode : public BaseNode {  // выражение, которое возвращает значение (например 1+2)
 public:
     void print(int) override;
+    Value runNode(VariableScope&) override;
 };
 
 class RootNode : public ExpressionNode {  // эквивалентно StatementsNode
@@ -26,6 +29,7 @@ public:
 
     RootNode() {};
     void print(int) override;
+    Value runNode(VariableScope&) override;
 };
 
 class NumberNode : public ExpressionNode {
@@ -43,6 +47,7 @@ public:
     }
 
     void print(int) override;
+    Value runNode(VariableScope&) override;
 };
 
 class VariableNode : public ExpressionNode {
@@ -56,6 +61,7 @@ public:
     };
     
     void print(int) override;
+    Value runNode(VariableScope&) override;
 };
 
 class BinNode : public ExpressionNode {  // сделав любые bin ноды выржанениями, можно добиться синтаксиса по типу: a = b = 0
@@ -73,4 +79,5 @@ public:
     };
     
     void print(int) override;
+    Value runNode(VariableScope&) override;
 };
