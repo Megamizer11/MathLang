@@ -19,13 +19,16 @@ public:
     TokenType(std::string name, LexState type, std::string literal)
         : name(name), type(type), literal(literal) {}
     TokenType() {}
+    
+    void print(int);
 };
 
 struct TokenTypes {
     std::vector<TokenType> data {
         TokenType("IDENTIFIER",  LexState::IDENTIFIER,  "identifier"),  // переменная или название функции
         TokenType("NUMBER",      LexState::NUMBER,      "number"    ),
-        // TokenType("SPACE",       LexState::UNIQUE,      "space"     ),
+        TokenType("OPEN_PAR",    LexState::UNIQUE,      "("         ),
+        TokenType("CLOSE_PAR",   LexState::UNIQUE,      ")"         ),
         TokenType("EQUALS",      LexState::UNIQUE,      "="         ),
         TokenType("PLUS",        LexState::UNIQUE,      "+"         ),
         TokenType("MINUS",       LexState::UNIQUE,      "-"         ),
@@ -36,12 +39,14 @@ struct TokenTypes {
 
     TokenType& IDENTIFIER() { return data[0]; }
     TokenType& NUMBER()     { return data[1]; }
-    TokenType& EQUALS()     { return data[2]; }
-    TokenType& PLUS()       { return data[3]; }
-    TokenType& MINUS()      { return data[4]; }
-    TokenType& MULT()       { return data[5]; }
-    TokenType& DIVIDE()     { return data[6]; }
-    TokenType& POWER()      { return data[7]; }
+    TokenType& OPEN_PAR()   { return data[2]; }
+    TokenType& CLOSE_PAR()  { return data[3]; }
+    TokenType& EQUALS()     { return data[4]; }
+    TokenType& PLUS()       { return data[5]; }
+    TokenType& MINUS()      { return data[6]; }
+    TokenType& MULT()       { return data[7]; }
+    TokenType& DIVIDE()     { return data[8]; }
+    TokenType& POWER()      { return data[9]; }
 
     std::size_t size() const {
         return data.size();
@@ -62,12 +67,13 @@ extern TokenTypes tokenTypes;  // Если бы существовал tokens.cp
 class Token {
 public:
     TokenType type;
-    std::string literal;
+    std::string literal;  // Для UNIQUE токенов то же самое, что TokenType::literal, для переменных, чисел и т.д. само название ("a1" вместо "variable", "3.14" вместо "nmber")
     int pos;
     int fLine;  // (f - format) На какой строке находится токен
     int fIndex;  // (f - format) Индекс символа в пределах строки
     Token(TokenType type, std::string literal, int pos, int fLine, int fIndex)
         : type(type), literal(literal), pos(pos), fLine(fLine), fIndex(fIndex) {}
     Token() {}
-    // void print(int);
+
+    void print(int);
 };
