@@ -44,10 +44,7 @@ public:
         va_end(formatList);
     }
 
-    // const char* what();
     virtual const char* what() const noexcept override {
-        // std::string msgCopy = message;
-        // msgCopy.replace(msgCopy.find("{pos}"), 5, "0:0");
         return message.c_str();
     }
 };
@@ -69,16 +66,6 @@ public:
         if (message.find("{got_literal}") != std::string::npos)
             message.replace(message.find("{got_literal}"), 13, "\"" + token.literal + "\"");
     }
-
-    // RunnerException(std::string msg, int formatCount, ...) {
-    //     va_list formatList;
-    //     va_start(formatList, formatCount);
-    //     for (int i = 0; i < formatCount ; i++) {
-    //         std::string repl = "{" + std::to_string(i) + "}";
-    //         if (message.find(repl) != std::string::npos)
-    //             message.replace(message.find(repl), repl.length(), va_arg(formatCount, std::string));
-    //     }
-    // }
 
     RunnerException(std::string msg, const Token& token, int formatCount, ...) {
         message = msg;

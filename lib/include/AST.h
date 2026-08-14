@@ -47,27 +47,11 @@ public:
         return numberToken.literal.find(".") == std::string::npos;
     }
 
-    // long long getInt() {
-    //     if (isInt())
-    //         return std::stoi(numberToken.literal);
-    //     return std::stoi(numberToken.literal.substr(0, numberToken.literal.find(".")));
-    // }
-
-    // long long getDecimal() {
-    //     if (isInt())
-    //         return 0;
-    //     return std::stoi(numberToken.literal.substr(numberToken.literal.find(".") + 1));
-    // }
-
     long long getMantissa() {
         if (isInt())
             return std::stoi(numberToken.literal);
-        // return std::stoi(numberToken.literal.substr(0, numberToken.literal.find(".")) +
-        //                  numberToken.literal.substr(numberToken.literal.find(".") + 1)
-        //                 );
         std::string mantissa = numberToken.literal;
         mantissa.erase(numberToken.literal.find("."), 1);
-        // std::cout << "mantissa " << mantissa << std::endl;
         return std::stoi(mantissa);
     }
 
@@ -76,13 +60,6 @@ public:
             return 0;
         return - ((numberToken.literal.length() - 1) - numberToken.literal.find("."));  // Если число дробное, экспонента отрицательна
     }
-
-    // long getExponent() {
-    //     if (isInt())
-    //         return 0;
-    //     // std::cout << "exp " << numberToken.literal.length() - 1 - numberToken.literal.find(".") << std::endl;
-    //     return (numberToken.literal.length() - 1) - numberToken.literal.find(".");
-    // }
 
     void print(int) override;
     Value runNode(VariableScope&) override;
