@@ -27,7 +27,7 @@ Lexer::Lexer(string code, bool showLexerWork) {
     this->lex_analysis();
     if (showLexerWork) {
         for (int i = 0; i < tokenList.size(); i++)
-            cout << tokenList[i].literal << " " << std::left << std::setw(10) << tokenList[i].type.name << " " << tokenList[i].fLine << ":" << tokenList[i].fIndex << endl;
+            cout << std::left << std::setw(4) << tokenList[i].literal << " " << std::left << std::setw(10) << tokenList[i].type.name << " " << tokenList[i].fLine << ":" << tokenList[i].fIndex << endl;
         cout << "token_count: " << tokenList.size() << endl;
     }
 }
@@ -61,12 +61,15 @@ void Lexer::read_number() {
     for (int i = this->pos; i < code.length(); i++) {
         c++;
         ch = code[i];
-        if (c == 0 && ch == '-') {  // c == 0 => i == this->pos
+        if (ch == '-') {  // c == 0 => i == this->pos
             accum += ch;
             continue;
         }
         if (ch == '.') {
-            if (!isFraction) accum += ch;
+            if (!isFraction) {
+                accum += ch;
+                continue;
+            }
             else throw runtime_error("Lexer: not number at: " + to_string(this->fLine) + string(":") + to_string(this->fIndex));
         }
         if (isdigit(ch)) {  // Здесь число может начинаться с нуля: 01
@@ -134,7 +137,7 @@ void Lexer::lex_analysis() {
             continue;
         }
 
-        if (isdigit(ch)) {
+        if (isdigit(ch) || ch == '-') {
             read_number();
         } else if (isalnum(ch) || ch == '_') {
             read_identifier();
