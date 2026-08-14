@@ -24,6 +24,15 @@ string readFromFile(std::string name) {
     return str;
 }
 
+// В теории такой синтаксис можно реализовать
+// ∞
+// ⌠
+// ⌡ ƒ(x)δx
+// -∞
+//     ∞
+// a = Σ 1/n!
+//    n=0
+
 int main() {
     string code = readFromFile("code.mthl");
     Lexer lexer = Lexer(code, true);
