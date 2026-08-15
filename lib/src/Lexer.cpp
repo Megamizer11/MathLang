@@ -56,12 +56,12 @@ void Lexer::push_token(const TokenType& tokenType, string literal) {
 void Lexer::read_number() {
     char ch;
     std::string accum = "";
-    int c = -1;  // нужен чтобы минус мог быть только первым символом в литерале
+    // int c = -1;  // нужен чтобы минус мог быть только первым символом в литерале
     int isFraction = false;
     for (int i = this->pos; i < code.length(); i++) {
-        c++;
+        // c++;
         ch = code[i];
-        if (ch == '-') {  // c == 0 => i == this->pos
+        if (i == this->pos && ch == '-') {  // c == 0 => i == this->pos
             accum += ch;
             continue;
         }
@@ -124,6 +124,8 @@ void Lexer::read_unique() {  // Может парсить не только од
 
 void Lexer::lex_analysis() {
     char ch;
+    // bool lastCharWasMinus = false;
+    bool canStartNumberWithMinus = true;
     while (this->pos < this->code.length()) {
         ch = code[this->pos];
         
@@ -137,12 +139,18 @@ void Lexer::lex_analysis() {
             continue;
         }
 
-        if (isdigit(ch) || ch == '-') {
+        if (isdigit(ch) || (canStartNumberWithMinus && ch == '-')) {
             read_number();
         } else if (isalnum(ch) || ch == '_') {
             read_identifier();
         } else {
             read_unique();
         }
+        if (tokenList.back().type.name == tokenTypes.NUMBER().name ||  // Случай: 1-2
+            tokenList.back().type.name == tokenTypes.IDENTIFIER().name ||  // Случай: a-2
+            tokenList.back().type.name == tokenTypes.CLOSE_PAR().name)  // Случай: (a)-2
+            canStartNumberWithMinus = false;  // Во всех этих случаях знак "-" является операцией
+        else
+            canStartNumberWithMinus = true;  // Во всех остальных случаях знак "-" показывает, что число отрицательное: 2 + -1, f(-1)
     }
 }

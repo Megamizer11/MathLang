@@ -132,6 +132,10 @@ unique_ptr<ExpressionNode> Parser::parseStatement() {
         }
         return move(varNode);  // a
     }
+    if (Token* printToken = match(tokenTypes.PRINT())) {
+        unique_ptr<ExpressionNode> arg = parseExpression();
+        return make_unique<SideEffectFuncNode>(*printToken, move(arg));
+    }
     return parseExpression();  // 1 + 2
 }
 

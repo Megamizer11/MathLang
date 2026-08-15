@@ -6,6 +6,7 @@
 // #include <memory>
 #include <type_traits>
 #include <cmath>
+#include <iomanip>
 
 #include "AST.h"
 #include "mpark/variant.hpp"
@@ -20,16 +21,24 @@ struct NumberValue {
         return exponent >= 0;
     }
     
+    // std::string getAsString() const {
+    //     int mantissaLength = std::to_string(mantissa).length();  // учитывает минус
+    //     int dotIndex = mantissaLength + exponent;
+    //     std::string strMantissa = std::to_string(mantissa);
+    //     std::cout << "mant " << mantissa << "  exp " << exponent << "  ln " << mantissaLength << std::endl;
+    //     if (dotIndex >= 0 && exponent != 0)
+    //         strMantissa.insert(dotIndex, ".");
+    //     if (mantissa > 0 && dotIndex == 0)
+    //         strMantissa.insert(dotIndex, "0");  // Без этого число 0.5 превратится в ".5"
+    //     if (mantissa < 0 && dotIndex == 1)
+    //         strMantissa.insert(dotIndex, "0");  // Без этого число -0.5 превратится в "-.5"
+    //     return strMantissa;
+    // }
+    
     std::string getAsString() const {
         int mantissaLength = std::to_string(mantissa).length();  // учитывает минус
         int dotIndex = mantissaLength + exponent;
-        std::string strMantissa = std::to_string(mantissa);
-        if (dotIndex >= 0 && exponent != 0)
-            strMantissa.insert(dotIndex, ".");
-        if (mantissa > 0 && dotIndex == 0)
-            strMantissa.insert(dotIndex, "0");  // Без этого число 0.5 превратится в ".5"
-        if (mantissa < 0 && dotIndex == 1)
-            strMantissa.insert(dotIndex, "0");  // Без этого число -0.5 превратится в "-.5"
+        std::string strMantissa = std::to_string(mantissa * pow(10, exponent));  // Очень сильно страдает точность: всего 6 значащих цифр
         return strMantissa;
     }
 
@@ -68,7 +77,7 @@ struct NumberValue {
         long long inflatedMantissa = this->mantissa * pow(10, fixedDecimalAccuracy) / rightNumberValue.mantissa;
         return NumberValue {
             inflatedMantissa,
-            fixedDecimalAccuracy
+            -fixedDecimalAccuracy + this->exponent - rightNumberValue.exponent
         };
     }
 };
@@ -79,6 +88,7 @@ using Value = mpark::variant<
 
 inline std::ostream& operator<<(std::ostream& os, const NumberValue& val) {
     return os << val.getAsString();
+    // return os << std::setprecision(15) << (val.mantissa * pow(10, val.exponent));
 }
 
 inline std::ostream& operator<<(std::ostream& os, const Value& valueType) {

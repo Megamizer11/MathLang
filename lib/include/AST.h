@@ -96,3 +96,19 @@ public:
     void print(int) override;
     Value runNode(VariableScope&) override;
 };
+
+class SideEffectFuncNode : public ExpressionNode {
+public:
+    Token operToken;
+    std::unique_ptr<ExpressionNode> arg;
+
+    SideEffectFuncNode() {};
+
+    SideEffectFuncNode(Token operToken, std::unique_ptr<ExpressionNode> arg) {
+        this->operToken = operToken;
+        this->arg = std::move(arg);
+    };
+    
+    void print(int) override;
+    Value runNode(VariableScope&) override;
+};

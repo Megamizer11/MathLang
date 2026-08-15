@@ -61,7 +61,7 @@ Value BinNode::runNode(VariableScope& varScope) {
             if (isNumber(left) && isNumber(right)) return asNumberValue(left) + asNumberValue(right);
         
         } else if (oper.name == tokenTypes.MINUS().name) {
-            if (isNumber(left) && isNumber(right)) return asNumberValue(left) + asNumberValue(right);
+            if (isNumber(left) && isNumber(right)) return asNumberValue(left) - asNumberValue(right);
         
         } else if (oper.name == tokenTypes.MULT().name) {
             if (isNumber(left) && isNumber(right)) return asNumberValue(left) * asNumberValue(right);
@@ -81,11 +81,17 @@ Value BinNode::runNode(VariableScope& varScope) {
     throw RunnerException("BO_Runner::runNode error: bin operator error at: {pos}", operToken);
 }
 
+Value SideEffectFuncNode::runNode(VariableScope& varScope) {
+    if (this->operToken.type.name == tokenTypes.PRINT().name) {
+        cout << std::setprecision(20) << this->arg->runNode(varScope) << endl;
+    }
+}
+
 Value RootNode::runNode(VariableScope& varScope) {
     for (const auto& instr : this->instructions) {
         Value result = instr->runNode(varScope);
         if (instr == instructions.back())
-            cout << std::setprecision(17) << result << endl;
+            cout << std::setprecision(20) << result << endl;
     }
     return NumberValue {0};
 }

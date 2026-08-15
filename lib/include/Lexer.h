@@ -18,6 +18,7 @@ private:
     // void read_str();
     void read_number();
     void read_identifier();
+    // void read_side_effect();
     void read_unique();
     void lex_analysis();
     // void format_token_list();
