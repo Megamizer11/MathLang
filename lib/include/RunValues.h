@@ -11,10 +11,25 @@
 #include "AST.h"
 #include "mpark/variant.hpp"
 #include "exceptions.h"
+#include "utils.h"
+
+#define RETURN_NUMBERVALUE(rawMantissa, rawExponent) \
+    /* В выражении 36 + 84 может получиться мантисса, равная 120 (это) */ \
+    { if (rawMantissa == 0) return NumberValue {0, 0}; \
+    long long _resultMantissa = rawMantissa; \
+    long _resultExp = rawExponent; \
+    while (_resultMantissa % 10 == 0) { \
+        _resultMantissa = _resultMantissa / 10; \
+        _resultExp++; \
+    } \
+    return NumberValue { \
+        _resultMantissa, \
+        _resultExp \
+    };}
 
 struct NumberValue {
     // Обычное число получается так: mantissa * 10^exponent
-    long long mantissa;  // Для числа 12.345 это 12345, для 12000 это 12, мантисса может быть отрицательной
+    long long mantissa;  // Для числа 12.345 это 12345, для 12000 это 12, мантисса может быть отрицательной, мантисса не может оканчиваться на ноль (исключение - мантисса равна нулю)
     long exponent;       // Для числа 12.345 это -3, для 12000 это 3, экспонента может быть отрицательной
 
     bool isInt() {
@@ -35,11 +50,16 @@ struct NumberValue {
     //     return strMantissa;
     // }
     
+    // std::string getAsString() const {
+    //     int mantissaLength = std::to_string(mantissa).length();  // учитывает минус
+    //     int dotIndex = mantissaLength + exponent;
+    //     std::string strMantissa = std::to_string(mantissa * pow(10, exponent));  // Очень сильно страдает точность: всего 6 значащих цифр
+    //     std::cout << "mant " << mantissa << "  exp " << exponent << "  ln " << mantissaLength << "  fin " << strMantissa << std::endl;
+    //     return strMantissa;
+    // }
+    
     std::string getAsString() const {
-        int mantissaLength = std::to_string(mantissa).length();  // учитывает минус
-        int dotIndex = mantissaLength + exponent;
-        std::string strMantissa = std::to_string(mantissa * pow(10, exponent));  // Очень сильно страдает точность: всего 6 значащих цифр
-        return strMantissa;
+        return getLiteralFromMantissaAndExponent(mantissa, exponent);
     }
 
     NumberValue operator+(const NumberValue& rightNumberValue) {
@@ -47,39 +67,62 @@ struct NumberValue {
         long minExp = std::min(this->exponent, rightNumberValue.exponent);
         long long term1 = std::round(this->mantissa * pow(10, (this->exponent - minExp)));  // без round иногда может возвращаться не 1100 (ожидаемое), а 1099
         long long term2 = std::round(rightNumberValue.mantissa * pow(10, (rightNumberValue.exponent - minExp)));
-        return NumberValue {
-            term1 + term2,
-            minExp
-        };
+        // long long resultMantissa = term1 + term2;  // В выражении 36 + 84 может получиться мантисса, равная 120
+        // long exp = minExp;
+        // while (resultMantissa % 10 == 0) {
+        //     resultMantissa = resultMantissa / 10;
+        //     exp++;
+        // }
+        // return NumberValue {
+        //     resultMantissa,
+        //     exp
+        // };
+        long long rawMantissa = term1 + term2;  // В выражении 36 + 84 может получиться мантисса, равная 120 (хотя мантисса должна быть 12, а экспонента 1)
+        long exp = minExp;
+        RETURN_NUMBERVALUE(rawMantissa, exp)
     }
 
     NumberValue operator-(const NumberValue& rightNumberValue) {
         long minExp = std::min(this->exponent, rightNumberValue.exponent);
         long long term1 = std::round(this->mantissa * pow(10, (this->exponent - minExp)));
         long long term2 = std::round(rightNumberValue.mantissa * pow(10, (rightNumberValue.exponent - minExp)));
-        return NumberValue {
-            term1 - term2,
-            minExp
-        };
+        // return NumberValue {
+        //     term1 - term2,
+        //     minExp
+        // };
+        long long rawMantissa = term1 - term2;
+        long exp = minExp;
+        RETURN_NUMBERVALUE(rawMantissa, exp)
     }
 
     NumberValue operator*(const NumberValue& rightNumberValue) {
         // С умножением всё проще, чем с делением: выражение 18*10^5 * 255*10^2 можно записать в виде: (18*255)*10^(5+2)
-        return NumberValue {
-            this->mantissa * rightNumberValue.mantissa,
-            this->exponent + rightNumberValue.exponent
-        };
+        // return NumberValue {
+        //     this->mantissa * rightNumberValue.mantissa,
+        //     this->exponent + rightNumberValue.exponent
+        // };
+        long long rawMantissa = this->mantissa * rightNumberValue.mantissa;
+        long exp = this->exponent + rightNumberValue.exponent;
+        RETURN_NUMBERVALUE(rawMantissa, exp)
     }
 
     NumberValue operator/(const NumberValue& rightNumberValue) {
         // Разделить одно число на другое невозможно с бесконечной точностью. Поэтому мы превращаем результат деления в целое число, "раздувая" мантиссу с помощью pow(10, fixedDecimalAccuracy)
+        // Выражение 18*10^5 / 255*10^2 можно записать в виде: (18/255)*10^10 * 10^(-10 + 5-2), где (18/255)*10^10 - целое (округлённое) число
         int fixedDecimalAccuracy = 10;
         long long inflatedMantissa = this->mantissa * pow(10, fixedDecimalAccuracy) / rightNumberValue.mantissa;
-        return NumberValue {
-            inflatedMantissa,
-            -fixedDecimalAccuracy + this->exponent - rightNumberValue.exponent
-        };
+        // return NumberValue {
+        //     inflatedMantissa,
+        //     -fixedDecimalAccuracy + this->exponent - rightNumberValue.exponent
+        // };
+        long long rawMantissa = inflatedMantissa;
+        long exp = -fixedDecimalAccuracy + this->exponent - rightNumberValue.exponent;
+        RETURN_NUMBERVALUE(rawMantissa, exp)
     }
+
+    bool operator==(const NumberValue& rightNumberValue) const {
+        return (this->mantissa == rightNumberValue.mantissa) && (this->exponent == rightNumberValue.exponent);
+    };
 };
 
 using Value = mpark::variant<
@@ -88,6 +131,7 @@ using Value = mpark::variant<
 
 inline std::ostream& operator<<(std::ostream& os, const NumberValue& val) {
     return os << val.getAsString();
+    // return os << val.getAsString() << " " << val.mantissa << " " << val.exponent;
     // return os << std::setprecision(15) << (val.mantissa * pow(10, val.exponent));
 }
 

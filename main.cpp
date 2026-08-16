@@ -7,6 +7,7 @@
 #include "Lexer.h"
 #include "Parser.h"
 #include "Runner.h"
+#include "utils.h"
 
 using std::ifstream;
 using std::stringstream;
@@ -39,5 +40,13 @@ int main() {
     Parser parser = Parser(lexer.tokenList, true);
     Runner runner = Runner(parser.rootNode);
     runner.run();
+    // // std::pair<long long, long> mantAndExp = getMantissaAndExponentFromLiteral("2350.030");
+    // // std::pair<long long, long> mantAndExp = getMantissaAndExponentFromLiteral("0");
+    // // std::pair<long long, long> mantAndExp = getMantissaAndExponentFromLiteral("1.0");
+    // // std::pair<long long, long> mantAndExp = getMantissaAndExponentFromLiteral("-10.01");
+    // std::pair<long long, long> mantAndExp = getMantissaAndExponentFromLiteral("10.0");
+    // std::string lit = getLiteralFromMantissaAndExponent(mantAndExp.first, mantAndExp.second);
+    // // cout << "lit->\"" << lit << "\" " << mantAndExp.first << " " << mantAndExp.second << " " << mantAndExp.first * pow(10, mantAndExp.second) << endl;
+    // cout << "lit->\"" << lit << "\" " << mantAndExp.first << " " << mantAndExp.second << " " << endl;
     return 0;
 }

@@ -126,6 +126,7 @@ void Lexer::lex_analysis() {
     char ch;
     // bool lastCharWasMinus = false;
     bool canStartNumberWithMinus = true;
+    bool inComment = false;
     while (this->pos < this->code.length()) {
         ch = code[this->pos];
         
@@ -133,9 +134,15 @@ void Lexer::lex_analysis() {
             if (ch == '\n') {
                 this->fLine++;
                 this->fIndex = 0;
+                inComment = false;
             }
             this->pos++;
             this->fIndex++;
+            continue;
+        }
+
+        if (inComment) {
+            this->pos++;
             continue;
         }
 
@@ -146,11 +153,17 @@ void Lexer::lex_analysis() {
         } else {
             read_unique();
         }
+
         if (tokenList.back().type.name == tokenTypes.NUMBER().name ||  // Случай: 1-2
             tokenList.back().type.name == tokenTypes.IDENTIFIER().name ||  // Случай: a-2
             tokenList.back().type.name == tokenTypes.CLOSE_PAR().name)  // Случай: (a)-2
             canStartNumberWithMinus = false;  // Во всех этих случаях знак "-" является операцией
         else
             canStartNumberWithMinus = true;  // Во всех остальных случаях знак "-" показывает, что число отрицательное: 2 + -1, f(-1)
+        
+        if (tokenList.back().type.name == tokenTypes.COMMENT().name) {
+            inComment = true;
+            tokenList.pop_back();
+        }
     }
 }

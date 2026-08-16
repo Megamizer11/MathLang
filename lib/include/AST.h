@@ -6,6 +6,7 @@
 
 #include "tokens.h"
 #include "RunValues.h"  // Зависимости AST от runtime быть не должно, это временное (наверное) решение
+#include "utils.h"
 
 class BaseNode {
 public:
@@ -36,6 +37,7 @@ public:
 class NumberNode : public ExpressionNode {
 public:
     Token numberToken;
+    // std::pair<long long, long> _mantAndExp = getMantissaAndExponentFromLiteral(numberToken.literal);
 
     NumberNode() {};
 
@@ -47,19 +49,23 @@ public:
         return numberToken.literal.find(".") == std::string::npos;
     }
 
-    long long getMantissa() {
-        if (isInt())
-            return std::stoi(numberToken.literal);
-        std::string mantissa = numberToken.literal;
-        mantissa.erase(numberToken.literal.find("."), 1);
-        return std::stoi(mantissa);
+    std::pair<long long, long> getMantissaAndExponent() {
+        return getMantissaAndExponentFromLiteral(numberToken.literal);
     }
 
-    long getExponent() {
-        if (isInt())
-            return 0;
-        return - ((numberToken.literal.length() - 1) - numberToken.literal.find("."));  // Если число дробное, экспонента отрицательна
-    }
+    // long long getMantissa() {
+    //     if (isInt())
+    //         return std::stoi(numberToken.literal);
+    //     std::string mantissa = numberToken.literal;
+    //     mantissa.erase(numberToken.literal.find("."), 1);
+    //     return std::stoi(mantissa);
+    // }
+
+    // long getExponent() {
+    //     if (isInt())
+    //         return 0;
+    //     return - ((numberToken.literal.length() - 1) - numberToken.literal.find("."));  // Если число дробное, экспонента отрицательна
+    // }
 
     void print(int) override;
     Value runNode(VariableScope&) override;
@@ -100,13 +106,16 @@ public:
 class SideEffectFuncNode : public ExpressionNode {
 public:
     Token operToken;
-    std::unique_ptr<ExpressionNode> arg;
+    // std::vector<std::unique_ptr<ExpressionNode>> args;
+    std::unique_ptr<ExpressionNode> arg;  // Очень халтурный способ
+    std::unique_ptr<ExpressionNode> arg2;
 
     SideEffectFuncNode() {};
 
-    SideEffectFuncNode(Token operToken, std::unique_ptr<ExpressionNode> arg) {
+    SideEffectFuncNode(Token operToken, std::unique_ptr<ExpressionNode> arg, std::unique_ptr<ExpressionNode> arg2) {
         this->operToken = operToken;
         this->arg = std::move(arg);
+        this->arg2 = std::move(arg2);
     };
     
     void print(int) override;

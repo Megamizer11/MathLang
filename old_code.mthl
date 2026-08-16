@@ -1,65 +1,13 @@
-#PRINT 1 + 2
-#PRINT 2 + 3
-#PRINT 10 + 20
-#PRINT 100 + 200
+#TEST 5 * 2 = 10
+#TEST 5 + 5 = 10
+#TEST 15 - 5 = 10
+#TEST 50 / 5 = 10
 
-#PRINT 5 - 2
-#PRINT 10 - 3
-#PRINT 2 - 5
-#PRINT 100 - 250
+#PRINT 12345678
 
-#PRINT 3 * 4
-#PRINT 10 * 20
-#PRINT 123 * 456
+#TEST 24 * 5 = 120
+#TEST 105 + 15 = 120
+#TEST 125 - 5 = 120
+#TEST 600 / 5 = 120
 
-#PRINT 10 / 2
-#PRINT 20 / 5
-#PRINT 100 / 4
-#PRINT 7 / 2
-
-#PRINT -1 + 2
-#PRINT 1 + -2
-#PRINT -1 + -2
-
-#PRINT -5 - 2
-#PRINT 5 - -2
-#PRINT -5 - -2
-
-#PRINT -3 * 4
-#PRINT 3 * -4
-#PRINT -3 * -4
-
-#PRINT -10 / 2
-#PRINT 10 / -2
-#PRINT -10 / -2
-
-#PRINT 1.5 + 2.5
-#PRINT 0.1 + 0.2
-#PRINT 1.25 + 2.75
-
-#PRINT 5.5 - 2.25
-#PRINT 2.25 - 5.5
-#PRINT 0.1 - 0.2
-
-#PRINT 1.5 * 2
-#PRINT 2.5 * 4
-#PRINT 1.25 * 2.5
-
-#PRINT 10.0 / 2
-#PRINT 5.0 / 2.0
-#PRINT 1.0 / 4.0
-#PRINT 7.0 / 2.0
-
-#PRINT 1 / 3
-#PRINT 2 / 3
-#PRINT 1 / 7
-#PRINT 10 / 3
-#PRINT 100 / 6
-
-#PRINT 18 / 255
-
-#PRINT 0.1 / 3
-#PRINT 1.0 / 6.0
-#PRINT 2.0 / 7.0
-
-1000000000/7
+#COM Правильно отображается позиция при ошибке (reached token limit, expected "EQUALS", at: 13:14) -> #TEST 1 + 223

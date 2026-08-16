@@ -66,7 +66,10 @@ Token* Parser::require(TokenType expected) {
         }
         throw ParserException("Parser::require error: required: \"{0}\" got: {got_literal} on pos: {pos}", tokenList[pos], 1, expected.literal);
     }
-    throw ParserException("Parser::require error: reached token limit, expected \"{0}\", got: {got_literal} at: {pos} - " + to_string(pos), tokenList[pos], 1, expected.name);
+    // throw ParserException("Parser::require error: reached token limit, expected \"{0}\", got: {got_literal} at: {pos} - " + to_string(pos), tokenList[pos], 1, expected.name);
+    // throw ParserException("Parser::require error: reached token limit, expected \"{0}\", got: {got_literal} at: {pos}", tokenList.back(), 1, expected.name);
+    throw ParserException("Parser::require error: reached token limit, expected \"{0}\", at: {1}:{2}", tokenList.back(), 3,
+            expected.name, to_string(tokenList.back().fLine), to_string(tokenList.back().fIndex + tokenList.back().literal.length()));
 }
 
 unique_ptr<VariableNode> Parser::parseVariable() {
@@ -134,7 +137,15 @@ unique_ptr<ExpressionNode> Parser::parseStatement() {
     }
     if (Token* printToken = match(tokenTypes.PRINT())) {
         unique_ptr<ExpressionNode> arg = parseExpression();
-        return make_unique<SideEffectFuncNode>(*printToken, move(arg));
+        // vector<unique_ptr<ExpressionNode>> vec = {move(arg)};
+        return make_unique<SideEffectFuncNode>(*printToken, move(arg), nullptr);
+    }
+    if (Token* printToken = match(tokenTypes.TEST())) {
+        unique_ptr<ExpressionNode> arg = parseExpression();
+        require(tokenTypes.EQUALS());
+        unique_ptr<ExpressionNode> arg2 = parseExpression();
+        // vector<unique_ptr<ExpressionNode>> vec = {move(arg), move(arg2)};
+        return make_unique<SideEffectFuncNode>(*printToken, move(arg), move(arg2));
     }
     return parseExpression();  // 1 + 2
 }

@@ -36,7 +36,9 @@ Value ExpressionNode::runNode(VariableScope& varScope) {
 }
  
 Value NumberNode::runNode(VariableScope& varScope) {
-    return NumberValue { this->getMantissa(), this->getExponent() };
+    // return NumberValue { this->getMantissa(), this->getExponent() };
+    std::pair<long long, long> mantAndExp = this->getMantissaAndExponent();
+    return NumberValue { mantAndExp.first, mantAndExp.second };
 }
 
 Value VariableNode::runNode(VariableScope& varScope) {
@@ -85,6 +87,16 @@ Value SideEffectFuncNode::runNode(VariableScope& varScope) {
     if (this->operToken.type.name == tokenTypes.PRINT().name) {
         cout << std::setprecision(20) << this->arg->runNode(varScope) << endl;
     }
+    if (this->operToken.type.name == tokenTypes.TEST().name) {
+        Value val1 = this->arg->runNode(varScope);
+        Value val2 = this->arg2->runNode(varScope);
+        cout << ((val1 == val2) ? "true" : "false") << ", ";
+        cout << val1 << ((val1 == val2) ? " == " : " != ") << val2 << endl;
+        // cout << ((val1 == val2) ? "true" : "false") << endl;
+        // cout << "v1 " << val1 << endl;
+        // cout << "v2 " << val2 << endl;
+    }
+    return NumberValue {0};
 }
 
 Value RootNode::runNode(VariableScope& varScope) {

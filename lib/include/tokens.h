@@ -8,7 +8,6 @@ enum class LexState {
     // STRING,  // Только для токенов, которые являются строковыми литералами: "", "abc", "var = \"1\""
     NUMBER,  // Только для токенов, которые являются числами: 1, 3.14, -12, 0
     IDENTIFIER,  // Обычное слово (название переменной или функции)
-    // SIDE_EFFECT  // Название функций, начинающихся с "#" (например #PRINT), использующие побочные эффекты
 };
 
 class TokenType {
@@ -27,7 +26,6 @@ public:
 struct TokenTypes {
     std::vector<TokenType> data {
         TokenType("IDENTIFIER",   LexState::IDENTIFIER,  "identifier"),  // переменная или название функции
-        // TokenType("SIDE_EFFECTS", LexState::IDENTIFIER,  "identifier"),
         TokenType("NUMBER",       LexState::NUMBER,      "number"    ),
         TokenType("OPEN_PAR",     LexState::UNIQUE,      "("         ),
         TokenType("CLOSE_PAR",    LexState::UNIQUE,      ")"         ),
@@ -37,8 +35,11 @@ struct TokenTypes {
         TokenType("MULT",         LexState::UNIQUE,      "*"         ),
         TokenType("DIVIDE",       LexState::UNIQUE,      "/"         ),
         TokenType("POWER",        LexState::UNIQUE,      "^"         ),
-        TokenType("PRINT",        LexState::UNIQUE,      "#PRINT"    ),
-        TokenType("TEST",         LexState::UNIQUE,      "#TEST"    )
+
+        // Следующие типы токенов нужны для дополнительных возможностей (side эффекты, комментарии и т.д.)
+        TokenType("PRINT",        LexState::UNIQUE,      "#PRINT"    ),  // Работает на уровне парсера и раннера
+        TokenType("TEST",         LexState::UNIQUE,      "#TEST"     ),  // Работает на уровне парсера и раннера
+        TokenType("COMMENT",      LexState::UNIQUE,      "#COM"      )   // Работает на уровне лексера
     };
 
     TokenType& IDENTIFIER() { return data[0];  }
@@ -53,6 +54,7 @@ struct TokenTypes {
     TokenType& POWER()      { return data[9];  }
     TokenType& PRINT()      { return data[10]; }
     TokenType& TEST()       { return data[11]; }
+    TokenType& COMMENT()    { return data[12]; }
 
     std::size_t size() const {
         return data.size();
