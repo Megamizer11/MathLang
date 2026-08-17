@@ -121,3 +121,41 @@ public:
     void print(int) override;
     Value runNode(VariableScope&) override;
 };
+
+class FunctionStatementNode : public ExpressionNode {  // f(x) = x^2 + 2
+public:
+    Token functionName;
+    std::unique_ptr<ExpressionNode> body;
+    std::vector<std::unique_ptr<VariableNode>> args;
+
+    FunctionStatementNode() {};
+    
+    FunctionStatementNode(Token functionName, std::unique_ptr<ExpressionNode> body, std::vector<std::unique_ptr<VariableNode>> args) {
+        this->functionName = functionName;
+        this->body = move(body);
+        this->args = move(args);
+    };
+
+    void print(int) override;
+    Value runNode(VariableScope&) override;
+};
+
+class FunctionCallNode : public ExpressionNode {  // f(2+2)
+public:
+    Token leftParToken;
+    // std::unique_ptr<ExpressionNode> callInitiator;
+    // Убрана возможность цепочных вызовов (f(1)(2)), т.к. могла бы получиться ситуация (f(x)(y) = z), при которой нельзя понять без семантики, корректное ли выражение
+    std::unique_ptr<VariableNode> callInitiator;
+    std::vector<std::unique_ptr<ExpressionNode>> args;  // важно: аргумент это не VariableNode, а именно ExpressionNode
+
+    FunctionCallNode() {};
+    
+    FunctionCallNode(Token leftParToken, std::unique_ptr<VariableNode> callInitiator, std::vector<std::unique_ptr<ExpressionNode>> args) {
+        this->leftParToken = leftParToken;
+        this->callInitiator = move(callInitiator);
+        this->args = move(args);
+    };
+
+    void print(int) override;
+    Value runNode(VariableScope&) override;
+};

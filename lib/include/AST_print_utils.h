@@ -120,10 +120,11 @@ void TokenType::print(int indent = 0) {
 
 void Token::print(int indent = 0) {
     // std::cout << GET_STR_INDENT(0) << "╚ " << this->literal << std::endl;  // Так виднее, к какому символу относятся другие символы
-    std::cout << GET_STR_INDENT(0) << this->type.name << ": " << this->literal << std::endl;
+    // std::cout << GET_STR_INDENT(0) << this->type.name << ": " << this->literal << std::endl;
     // std::cout << this->fLine << ":" << this->fIndex << GET_STR_INDENT(0) << this->type.name << ": " << this->literal << std::endl;
     // std::cout << this->literal << std::endl;
     // std::cout << " " << this->literal;
+    std::cout << GET_STR_INDENT(0) << this->literal << std::endl;
 }
 
 void BaseNode::print(int indent = 0) {
@@ -166,5 +167,21 @@ void SideEffectFuncNode::print(int indent = 0) {
     if (arg) arg->print(indent+2);
     if (arg2) arg2->print(indent+2);
 }
+
+void FunctionStatementNode::print(int indent = 0) {
+    functionName.print(indent+4);
+    for (const auto& arg : args)
+        arg->print(indent+4);
+    std::cout << GET_STR_INDENT(2) << "=" << std::endl;
+    body->print(indent+2);
+}
+
+void FunctionCallNode::print(int indent = 0) {
+    // leftParToken.print(indent+2);
+    callInitiator->varToken.print(indent+2);
+    for (const auto& arg : args)
+        arg->print(indent+2);
+}
+
 
 #undef GET_STR_INDENT

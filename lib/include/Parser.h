@@ -15,11 +15,14 @@ private:
     Token* match(TokenType expected);
     Token* match(std::vector<TokenType> expected);
     Token* require(TokenType expected);
-    bool isNext(TokenType);
+    bool checkNext(int, TokenType);
     
     std::unique_ptr<VariableNode> parseVariable();
     std::unique_ptr<ExpressionNode> parsePrimary();
     std::unique_ptr<ExpressionNode> parseParentheses();
+    bool nextIsFunctionStatement();
+    std::unique_ptr<FunctionStatementNode> parseFuncStatement();
+    std::unique_ptr<FunctionCallNode> parseFuncCall();
     std::unique_ptr<ExpressionNode> parseMultDiv();
     std::unique_ptr<ExpressionNode> parsePlusMinus();
     

@@ -73,12 +73,15 @@ Value BinNode::runNode(VariableScope& varScope) {
         }
     } else if (oper.name == tokenTypes.EQUALS().name) {
         ExpressionNode* leftNode = this->left.get();
-        if (VariableNode* varNode = dynamic_cast<VariableNode*>(leftNode)) {
+        if (VariableNode* varNode = dynamic_cast<VariableNode*>(leftNode)) { // a = ...
             std::string varName = varNode->varToken.literal;
             Value varValue = this->right->runNode(varScope);
             varScope.addVar(Variable {varName, varValue});
             return varValue;
         }
+        // if (FunctionCallNode* funcDeclNode = dynamic_cast<FunctionCallNode*>(leftNode)) {  // f(...) = ...
+        //     Value rawVal = funcDeclNode->callInitiator->runNode(varScope);  // Противоречие, что создать функцию f(x), нужно объявить runNode у f(x)
+        // }
     }
     throw RunnerException("BO_Runner::runNode error: bin operator error at: {pos}", operToken);
 }
@@ -96,6 +99,15 @@ Value SideEffectFuncNode::runNode(VariableScope& varScope) {
         // cout << "v1 " << val1 << endl;
         // cout << "v2 " << val2 << endl;
     }
+    return NumberValue {0};
+}
+
+Value FunctionStatementNode::runNode(VariableScope& varScope) {
+    return NumberValue {0};
+}
+
+Value FunctionCallNode::runNode(VariableScope& varScope) {
+    // Value rawFuncValue = varScope.getByName(this->)
     return NumberValue {0};
 }
 
