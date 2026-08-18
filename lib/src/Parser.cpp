@@ -64,10 +64,10 @@ Token* Parser::require(TokenType expected) {
         if ((requiredToken != nullptr) && (requiredToken->type.name == expected.name)) {
             return requiredToken;
         }
-        throw ParserException("Parser::require error: required: \"{0}\" got: {got_literal} on pos: {pos}", tokenList[pos], 1, expected.literal);
+        throw ParserException("Parser::require error: required: \"{0}\" got: {got_literal} on pos: {pos}", tokenList[pos], expected.literal);
     }
-    throw ParserException("Parser::require error: reached token limit, expected \"{0}\", at: {1}:{2}", tokenList.back(), 3,
-            expected.name, to_string(tokenList.back().fLine), to_string(tokenList.back().fIndex + tokenList.back().literal.length()));
+    throw ParserException("Parser::require error: reached token limit, expected \"{0}\", at: {1}:{2}", tokenList.back(),
+            expected.name, (tokenList.back().fLine), (tokenList.back().fIndex + tokenList.back().literal.length()));
 }
 
 unique_ptr<VariableNode> Parser::parseVariable() {
@@ -112,7 +112,8 @@ bool Parser::nextIsFunctionStatement() {
         }
         return checkNext(i+1, tokenTypes.EQUALS());  // Даже если дойдёт до конца файла (произойдёт break), functionIsStatement вернёт false
     }
-    throw ParserException("Not a function at: {pos}", tokenList[pos]);
+    // throw ParserException("Not a function at: {pos}", tokenList[pos]);
+    return false;
 }
 
 unique_ptr<FunctionStatementNode> Parser::parseFuncStatement() {

@@ -10,6 +10,7 @@ using std::endl;
 using std::runtime_error;
 using std::string;
 using std::vector;
+using std::to_string;
 
 Runner::Runner(RootNode& root) : rootNode(root) {
     cout << endl << endl << "RUNNER_STARTS" << endl;
@@ -116,8 +117,15 @@ Value FunctionStatementNode::runNode(VariableScope& varScope) {
 Value FunctionCallNode::runNode(VariableScope& varScope) {
     string callFunctionName = this->callInitiator->varToken.literal;
     const FunctionValue* functionValue = varScope.getFunctionByName(callFunctionName, this->leftParToken);
-    if (functionValue->args.size() != this->args.size())
-        throw RunnerException("FunctionCallNode::runNode error: function {0} must be called with {1} arguments but {2} was given at: {pos}", this->leftParToken, 3, callFunctionName, functionValue->args.size(), this->args.size());
+    if (functionValue->args.size() != this->args.size()) {
+        // cout << "ERR " << this->leftParToken.literal << " " << callFunctionName << " " << functionValue->args.size() << " " << this->args.size() << endl;
+        // throw RunnerException("FunctionCallNode::runNode error: function \"{0}\" must be called with {1} arguments but {2} was given at: {pos}", this->leftParToken, 3,
+        //     callFunctionName, (functionValue->args.size()), (this->args.size()));
+        // throw RunnerException("rerr");
+        // throw std::exception();
+        throw RunnerException("FunctionCallNode::runNode error: function \"{0}\" must be called with {1} arguments but {2} was given at: {pos}", this->leftParToken,
+            callFunctionName, (functionValue->args.size()), (this->args.size()));
+    }
     
     VariableScope localScope = varScope;  // Копирование, после завершения FunctionCallNode::runNode localScope автоматически удалится
     // На примере: f(x) = x^2; f(5+2)

@@ -1,4 +1,6 @@
 f(x, y) = x*y
 #PRINT f(5, 2)
-g(x, y, z) = x + y + z
+z = 1
+g(x, y) = x + y + z
+#PRINT g(5, 2)
 g(2, 3, 4)
