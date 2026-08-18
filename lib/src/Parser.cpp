@@ -117,11 +117,15 @@ bool Parser::nextIsFunctionStatement() {
 
 unique_ptr<FunctionStatementNode> Parser::parseFuncStatement() {
     Token *variableToken = match(tokenTypes.IDENTIFIER());
-    require(tokenTypes.OPEN_PAR());
-    unique_ptr<VariableNode> arg = parseVariable();
-    require(tokenTypes.CLOSE_PAR());
     vector<unique_ptr<VariableNode>> args = {};
-    args.push_back(move(arg));
+    require(tokenTypes.OPEN_PAR());
+    while (!checkNext(0, tokenTypes.CLOSE_PAR())) {
+        unique_ptr<VariableNode> arg = parseVariable();
+        args.push_back(move(arg));
+        if (!checkNext(0, tokenTypes.CLOSE_PAR()))
+            require(tokenTypes.COMMA());
+    }
+    require(tokenTypes.CLOSE_PAR());
     require(tokenTypes.EQUALS());
     unique_ptr<ExpressionNode> body = parseExpression();
     return make_unique<FunctionStatementNode>(*variableToken, move(body), move(args));
@@ -129,11 +133,15 @@ unique_ptr<FunctionStatementNode> Parser::parseFuncStatement() {
 
 unique_ptr<FunctionCallNode> Parser::parseFuncCall() {
     unique_ptr<VariableNode> left = parseVariable();
-    Token* openPar = require(tokenTypes.OPEN_PAR());
-    unique_ptr<ExpressionNode> arg = parseExpression();
-    require(tokenTypes.CLOSE_PAR());
     vector<unique_ptr<ExpressionNode>> args = {};
-    args.push_back(move(arg));
+    Token* openPar = require(tokenTypes.OPEN_PAR());
+    while (!checkNext(0, tokenTypes.CLOSE_PAR())) {
+        unique_ptr<ExpressionNode> arg = parseExpression();
+        args.push_back(move(arg));
+        if (!checkNext(0, tokenTypes.CLOSE_PAR()))
+            require(tokenTypes.COMMA());
+    }
+    require(tokenTypes.CLOSE_PAR());
     return make_unique<FunctionCallNode>(*openPar, move(left), move(args));
 }
 
@@ -165,19 +173,19 @@ unique_ptr<ExpressionNode> Parser::parseExpression() {
 
 unique_ptr<ExpressionNode> Parser::parseStatement() {
     if (checkNext(0, tokenTypes.IDENTIFIER())) {  // a
-        if (checkNext(1, tokenTypes.OPEN_PAR())) {  // Мы знаем, что текущий и следующий токен это "a(" (a - имя функции)
-            if (nextIsFunctionStatement())
-                return parseFuncStatement();
+        if (nextIsFunctionStatement())  // Мы точно знаем, что следующее сочетание токенов - объявление функция
+            return parseFuncStatement();
+        
+        if (checkNext(1, tokenTypes.OPEN_PAR()))  // Здесь мы будем парсить вызов функции
             return parseFuncCall();
-        } else {  // Мы знаем, что будем парсить НЕ функцию. Предположительно "a =" или просто "a"
-            unique_ptr<VariableNode> varNode = parseVariable();
-            if (Token* equalsToken = match(tokenTypes.EQUALS())) {
-                unique_ptr<ExpressionNode> formulaNode = parseExpression();
-                return make_unique<BinNode>(*equalsToken, move(varNode), move(formulaNode));  // a = 1 + 1
-            }
-            return move(varNode);
+        
+        // Мы знаем, что будем парсить НЕ функцию. Предположительно "a =" или просто "a"
+        unique_ptr<VariableNode> varNode = parseVariable();
+        if (Token* equalsToken = match(tokenTypes.EQUALS())) {
+            unique_ptr<ExpressionNode> formulaNode = parseExpression();
+            return make_unique<BinNode>(*equalsToken, move(varNode), move(formulaNode));  // a = 1 + 1
         }
-        // Т.к. было if (...) return else return, Эта строчка недостижима, лишних ошибок не будет
+        return move(varNode);
     }
     if (Token* printToken = match(tokenTypes.PRINT())) {
         unique_ptr<ExpressionNode> arg = parseExpression();

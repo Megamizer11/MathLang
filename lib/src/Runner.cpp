@@ -122,10 +122,10 @@ Value FunctionCallNode::runNode(VariableScope& varScope) {
     VariableScope localScope = varScope;  // Копирование, после завершения FunctionCallNode::runNode localScope автоматически удалится
     // На примере: f(x) = x^2; f(5+2)
     for (int i = 0; i < this->args.size(); i++) {
-        ExpressionNode* givenArg = this->args[0].get();  // Указатель на ExpressionNode("5+2")
+        ExpressionNode* givenArg = this->args[i].get();  // Указатель на ExpressionNode("5+2")
         Value givenResult = givenArg->runNode(varScope);  // Считаем результат (5+2=7), тогда givenResult это NumberValue(7)
 
-        VariableNode* requiredArg = functionValue->args[0];  // Указатель на VariableNode("x")
+        VariableNode* requiredArg = functionValue->args[i];  // Указатель на VariableNode("x")
         string requiredArgName = requiredArg->varToken.literal;  // Получаем имя "x"
 
         localScope.addVar(Variable {requiredArgName, givenResult});  // Склеиваем требуемый параметр и полученное к нему значение (x = 7)

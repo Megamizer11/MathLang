@@ -29,6 +29,7 @@ struct TokenTypes {
         TokenType("NUMBER",       LexState::NUMBER,      "number"    ),
         TokenType("OPEN_PAR",     LexState::UNIQUE,      "("         ),
         TokenType("CLOSE_PAR",    LexState::UNIQUE,      ")"         ),
+        TokenType("COMMA",        LexState::UNIQUE,      ","         ),
         TokenType("EQUALS",       LexState::UNIQUE,      "="         ),
         TokenType("PLUS",         LexState::UNIQUE,      "+"         ),
         TokenType("MINUS",        LexState::UNIQUE,      "-"         ),
@@ -46,15 +47,16 @@ struct TokenTypes {
     TokenType& NUMBER()     { return data[1];  }
     TokenType& OPEN_PAR()   { return data[2];  }
     TokenType& CLOSE_PAR()  { return data[3];  }
-    TokenType& EQUALS()     { return data[4];  }
-    TokenType& PLUS()       { return data[5];  }
-    TokenType& MINUS()      { return data[6];  }
-    TokenType& MULT()       { return data[7];  }
-    TokenType& DIVIDE()     { return data[8];  }
-    TokenType& POWER()      { return data[9];  }
-    TokenType& PRINT()      { return data[10]; }
-    TokenType& TEST()       { return data[11]; }
-    TokenType& COMMENT()    { return data[12]; }
+    TokenType& COMMA()      { return data[4];  }
+    TokenType& EQUALS()     { return data[5];  }
+    TokenType& PLUS()       { return data[6];  }
+    TokenType& MINUS()      { return data[7];  }
+    TokenType& MULT()       { return data[8];  }
+    TokenType& DIVIDE()     { return data[9];  }
+    TokenType& POWER()      { return data[10]; }
+    TokenType& PRINT()      { return data[11]; }
+    TokenType& TEST()       { return data[12]; }
+    TokenType& COMMENT()    { return data[13]; }
 
     std::size_t size() const {
         return data.size();
