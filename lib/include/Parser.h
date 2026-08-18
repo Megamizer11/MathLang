@@ -20,11 +20,13 @@ private:
     std::unique_ptr<VariableNode> parseVariable();
     std::unique_ptr<ExpressionNode> parsePrimary();
     std::unique_ptr<ExpressionNode> parseParentheses();
+    std::unique_ptr<ExpressionNode> parseExponentiation();  // Возведение в степень
+    std::unique_ptr<ExpressionNode> parseMultDiv();
+    std::unique_ptr<ExpressionNode> parsePlusMinus();
+
     bool nextIsFunctionStatement();
     std::unique_ptr<FunctionStatementNode> parseFuncStatement();
     std::unique_ptr<FunctionCallNode> parseFuncCall();
-    std::unique_ptr<ExpressionNode> parseMultDiv();
-    std::unique_ptr<ExpressionNode> parsePlusMinus();
     
     std::unique_ptr<ExpressionNode> parseExpression();
     std::unique_ptr<ExpressionNode> parseStatement();

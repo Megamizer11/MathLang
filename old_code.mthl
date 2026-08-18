@@ -1,13 +1,6 @@
-#TEST 5 * 2 = 10
-#TEST 5 + 5 = 10
-#TEST 15 - 5 = 10
-#TEST 50 / 5 = 10
-
-#PRINT 12345678
-
-#TEST 24 * 5 = 120
-#TEST 105 + 15 = 120
-#TEST 125 - 5 = 120
-#TEST 600 / 5 = 120
-
-#COM Правильно отображается позиция при ошибке (reached token limit, expected "EQUALS", at: 13:14) -> #TEST 1 + 223
+f(x, y) = x*y
+#PRINT f(5, 2)
+z = 1
+g(x, y) = x + y + z
+#PRINT g(5, 2)
+g(2, 3, 4)

@@ -57,7 +57,7 @@ bool checkOperator(string operName, vector<TokenType> types) {
 
 Value BinNode::runNode(VariableScope& varScope) {
     TokenType oper = this->operToken.type;
-    if (checkOperator(oper.name, {tokenTypes.PLUS(), tokenTypes.MINUS(), tokenTypes.MULT(), tokenTypes.DIVIDE()})) {
+    if (checkOperator(oper.name, {tokenTypes.PLUS(), tokenTypes.MINUS(), tokenTypes.MULT(), tokenTypes.DIVIDE(), tokenTypes.POWER()})) {
         Value left = this->left->runNode(varScope);
         Value right = this->right->runNode(varScope);
         if (oper.name == tokenTypes.PLUS().name) {
@@ -71,6 +71,9 @@ Value BinNode::runNode(VariableScope& varScope) {
         
         } else if (oper.name == tokenTypes.DIVIDE().name) {
             if (isNumber(left) && isNumber(right)) return asNumberValue(left) / asNumberValue(right);
+
+        } else if (oper.name == tokenTypes.POWER().name) {
+            if (isNumber(left) && isNumber(right)) return asNumberValue(left).raiseToAPowerOf(asNumberValue(right));
         }
     } else if (oper.name == tokenTypes.EQUALS().name) {
         ExpressionNode* leftNode = this->left.get();
@@ -80,9 +83,6 @@ Value BinNode::runNode(VariableScope& varScope) {
             varScope.addVar(Variable {varName, varValue});
             return NumberValue {0};
         }
-        // if (FunctionCallNode* funcDeclNode = dynamic_cast<FunctionCallNode*>(leftNode)) {  // f(...) = ...
-        //     Value rawVal = funcDeclNode->callInitiator->runNode(varScope);  // Противоречие, что создать функцию f(x), нужно объявить runNode у f(x)
-        // }
     }
     throw RunnerException("BinNode::runNode error: bin operator error at: {pos}", operToken);
 }
@@ -96,9 +96,6 @@ Value SideEffectFuncNode::runNode(VariableScope& varScope) {
         Value val2 = this->arg2->runNode(varScope);
         cout << ((val1 == val2) ? "true" : "false") << ", ";
         cout << val1 << ((val1 == val2) ? " == " : " != ") << val2 << endl;
-        // cout << ((val1 == val2) ? "true" : "false") << endl;
-        // cout << "v1 " << val1 << endl;
-        // cout << "v2 " << val2 << endl;
     }
     return NumberValue {0};
 }
@@ -109,7 +106,6 @@ Value FunctionStatementNode::runNode(VariableScope& varScope) {
     for (const auto& arg : this->args)
         argPtrs.push_back(arg.get());
     FunctionValue funcVal = FunctionValue {funcName, this->body.get(), argPtrs};
-    // varScope.addVar(Variable {funcName, funcVal});
     varScope.addFunction(funcVal);
     return NumberValue {0};
 }
@@ -118,11 +114,6 @@ Value FunctionCallNode::runNode(VariableScope& varScope) {
     string callFunctionName = this->callInitiator->varToken.literal;
     const FunctionValue* functionValue = varScope.getFunctionByName(callFunctionName, this->leftParToken);
     if (functionValue->args.size() != this->args.size()) {
-        // cout << "ERR " << this->leftParToken.literal << " " << callFunctionName << " " << functionValue->args.size() << " " << this->args.size() << endl;
-        // throw RunnerException("FunctionCallNode::runNode error: function \"{0}\" must be called with {1} arguments but {2} was given at: {pos}", this->leftParToken, 3,
-        //     callFunctionName, (functionValue->args.size()), (this->args.size()));
-        // throw RunnerException("rerr");
-        // throw std::exception();
         throw RunnerException("FunctionCallNode::runNode error: function \"{0}\" must be called with {1} arguments but {2} was given at: {pos}", this->leftParToken,
             callFunctionName, (functionValue->args.size()), (this->args.size()));
     }

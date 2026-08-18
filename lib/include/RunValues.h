@@ -76,6 +76,17 @@ struct NumberValue {
         RETURN_NUMBERVALUE(rawMantissa, exp)
     }
 
+    NumberValue raiseToAPowerOf(const NumberValue& rightNumberValue) {
+        // (5*10^3)^(4*10^6) = 5^(4*10^6) * 10^(3*4*10^6)
+        int fixedDecimalAccuracy = 5;
+        int accuracyCoeff = std::round(pow(10, fixedDecimalAccuracy));
+        double expandedRightMantissa = (rightNumberValue.mantissa * pow(10, rightNumberValue.exponent));
+        long long newMantissa = (accuracyCoeff * pow(this->mantissa, expandedRightMantissa));
+        long newExponent = -fixedDecimalAccuracy + this->exponent * expandedRightMantissa;
+        RETURN_NUMBERVALUE(newMantissa, newExponent)
+        // return NumberValue {newMantissa, newExponent};
+    }
+
     bool operator==(const NumberValue& rightNumberValue) const {
         return (this->mantissa == rightNumberValue.mantissa) && (this->exponent == rightNumberValue.exponent);
     };

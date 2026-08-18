@@ -101,18 +101,49 @@ unique_ptr<ExpressionNode> Parser::parseParentheses() {
     return expression;
 }
 
+unique_ptr<ExpressionNode> Parser::parseExponentiation() {
+    unique_ptr<ExpressionNode> left = parseParentheses();
+    Token *oper = match(tokenTypes.POWER());
+    while (oper != 0) {
+        unique_ptr<ExpressionNode> right = parseParentheses();
+        left = make_unique<BinNode>(*oper, move(left), move(right));
+        oper = match(tokenTypes.POWER());
+    }
+    return left;
+}
+
+unique_ptr<ExpressionNode> Parser::parseMultDiv() {
+    unique_ptr<ExpressionNode> left = parseExponentiation();
+    Token *oper = match({tokenTypes.MULT(), tokenTypes.DIVIDE()});
+    while (oper != 0) {
+        unique_ptr<ExpressionNode> right = parseExponentiation();
+        left = make_unique<BinNode>(*oper, move(left), move(right));
+        oper = match({tokenTypes.MULT(), tokenTypes.DIVIDE()});
+    }
+    return left;
+}
+
+unique_ptr<ExpressionNode> Parser::parsePlusMinus() {
+    unique_ptr<ExpressionNode> left = parseMultDiv();
+    Token *oper = match({tokenTypes.PLUS(), tokenTypes.MINUS()});
+    while (oper != 0) {
+        unique_ptr<ExpressionNode> right = parseMultDiv();
+        left = make_unique<BinNode>(*oper, move(left), move(right));
+        oper = match({tokenTypes.PLUS(), tokenTypes.MINUS()});
+    }
+    return left;
+}
+
+// Это костыль, из-за которого парсер может смотреть на неограниченное колличество токенов вперёд (ll(n))
 bool Parser::nextIsFunctionStatement() {
     if (checkNext(0, tokenTypes.IDENTIFIER()) && checkNext(1, tokenTypes.OPEN_PAR())) {
-        // if (checkNext(1, tokenTypes.IDENTIFIER()))
         int i = 2;
         while (!checkNext(i, tokenTypes.CLOSE_PAR())) {  // Находим тот i, на котором будет CLOSE_PAR
             i++;
-            // if (pos + i > tokenList.size()) goto err;
             if (pos + i > tokenList.size()) break;
         }
-        return checkNext(i+1, tokenTypes.EQUALS());  // Даже если дойдёт до конца файла (произойдёт break), functionIsStatement вернёт false
+        return checkNext(i+1, tokenTypes.EQUALS());  // Даже если дойдёт до конца файла (произойдёт break), nextIsFunctionStatement вернёт false
     }
-    // throw ParserException("Not a function at: {pos}", tokenList[pos]);
     return false;
 }
 
@@ -144,28 +175,6 @@ unique_ptr<FunctionCallNode> Parser::parseFuncCall() {
     }
     require(tokenTypes.CLOSE_PAR());
     return make_unique<FunctionCallNode>(*openPar, move(left), move(args));
-}
-
-unique_ptr<ExpressionNode> Parser::parseMultDiv() {
-    unique_ptr<ExpressionNode> left = parseParentheses();
-    Token *oper = match({tokenTypes.MULT(), tokenTypes.DIVIDE()});
-    while (oper != 0) {
-        unique_ptr<ExpressionNode> right = parseParentheses();
-        left = make_unique<BinNode>(*oper, move(left), move(right));
-        oper = match({tokenTypes.MULT(), tokenTypes.DIVIDE()});
-    }
-    return left;
-}
-
-unique_ptr<ExpressionNode> Parser::parsePlusMinus() {
-    unique_ptr<ExpressionNode> left = parseMultDiv();
-    Token *oper = match({tokenTypes.PLUS(), tokenTypes.MINUS()});
-    while (oper != 0) {
-        unique_ptr<ExpressionNode> right = parseMultDiv();
-        left = make_unique<BinNode>(*oper, move(left), move(right));
-        oper = match({tokenTypes.PLUS(), tokenTypes.MINUS()});
-    }
-    return left;
 }
 
 unique_ptr<ExpressionNode> Parser::parseExpression() {
