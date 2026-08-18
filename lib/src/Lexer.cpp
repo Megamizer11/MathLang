@@ -57,7 +57,8 @@ void Lexer::read_number() {
     char ch;
     std::string accum = "";
     // int c = -1;  // нужен чтобы минус мог быть только первым символом в литерале
-    int isFraction = false;
+    bool isFraction = false;
+    bool isExponent = false;  // Вид записи с буквой e: 4.1e3 (=4100)
     for (int i = this->pos; i < code.length(); i++) {
         // c++;
         ch = code[i];
@@ -71,6 +72,11 @@ void Lexer::read_number() {
                 continue;
             }
             else throw runtime_error("Lexer: not number at: " + to_string(this->fLine) + string(":") + to_string(this->fIndex));
+        }
+        if (ch == 'e' && !isExponent) {
+            accum += ch;
+            isExponent = true;
+            continue;
         }
         if (isdigit(ch)) {  // Здесь число может начинаться с нуля: 01
             accum += ch;
