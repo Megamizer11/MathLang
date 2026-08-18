@@ -57,7 +57,7 @@ bool checkOperator(string operName, vector<TokenType> types) {
 
 Value BinNode::runNode(VariableScope& varScope) {
     TokenType oper = this->operToken.type;
-    if (checkOperator(oper.name, {tokenTypes.PLUS(), tokenTypes.MINUS(), tokenTypes.MULT(), tokenTypes.DIVIDE(), tokenTypes.POWER()})) {
+    if (checkOperator(oper.name, {tokenTypes.PLUS(), tokenTypes.MINUS(), tokenTypes.MULT(), tokenTypes.DIVIDE(), tokenTypes.POWER(), tokenTypes.PERCENT()})) {
         Value left = this->left->runNode(varScope);
         Value right = this->right->runNode(varScope);
         if (oper.name == tokenTypes.PLUS().name) {
@@ -74,6 +74,9 @@ Value BinNode::runNode(VariableScope& varScope) {
 
         } else if (oper.name == tokenTypes.POWER().name) {
             if (isNumber(left) && isNumber(right)) return asNumberValue(left).raiseToAPowerOf(asNumberValue(right));
+        
+        } else if (oper.name == tokenTypes.PERCENT().name) {
+            if (isNumber(left) && isNumber(right)) return asNumberValue(left).getRemainder(asNumberValue(right));
         }
     } else if (oper.name == tokenTypes.EQUALS().name) {
         ExpressionNode* leftNode = this->left.get();

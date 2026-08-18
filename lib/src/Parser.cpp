@@ -112,22 +112,22 @@ unique_ptr<ExpressionNode> Parser::parseExponentiation() {
     return left;
 }
 
-unique_ptr<ExpressionNode> Parser::parseMultDiv() {
+unique_ptr<ExpressionNode> Parser::parseMultDivPercent() {
     unique_ptr<ExpressionNode> left = parseExponentiation();
-    Token *oper = match({tokenTypes.MULT(), tokenTypes.DIVIDE()});
+    Token *oper = match({tokenTypes.MULT(), tokenTypes.DIVIDE(), tokenTypes.PERCENT()});
     while (oper != 0) {
         unique_ptr<ExpressionNode> right = parseExponentiation();
         left = make_unique<BinNode>(*oper, move(left), move(right));
-        oper = match({tokenTypes.MULT(), tokenTypes.DIVIDE()});
+        oper = match({tokenTypes.MULT(), tokenTypes.DIVIDE(), tokenTypes.PERCENT()});
     }
     return left;
 }
 
 unique_ptr<ExpressionNode> Parser::parsePlusMinus() {
-    unique_ptr<ExpressionNode> left = parseMultDiv();
+    unique_ptr<ExpressionNode> left = parseMultDivPercent();
     Token *oper = match({tokenTypes.PLUS(), tokenTypes.MINUS()});
     while (oper != 0) {
-        unique_ptr<ExpressionNode> right = parseMultDiv();
+        unique_ptr<ExpressionNode> right = parseMultDivPercent();
         left = make_unique<BinNode>(*oper, move(left), move(right));
         oper = match({tokenTypes.PLUS(), tokenTypes.MINUS()});
     }

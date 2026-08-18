@@ -21,7 +21,7 @@ private:
     std::unique_ptr<ExpressionNode> parsePrimary();
     std::unique_ptr<ExpressionNode> parseParentheses();
     std::unique_ptr<ExpressionNode> parseExponentiation();  // Возведение в степень
-    std::unique_ptr<ExpressionNode> parseMultDiv();
+    std::unique_ptr<ExpressionNode> parseMultDivPercent();
     std::unique_ptr<ExpressionNode> parsePlusMinus();
 
     bool nextIsFunctionStatement();

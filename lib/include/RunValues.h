@@ -87,6 +87,17 @@ struct NumberValue {
         // return NumberValue {newMantissa, newExponent};
     }
 
+    NumberValue getRemainder(const NumberValue& rightNumberValue) {  // Получить остаток от деления: 11 % 3 = 2
+        // NumberValue getDiv = *this / rightNumberValue;
+        // long long newMantissa = this->mantissa - (rightNumberValue.mantissa * getDiv.mantissa);
+        // long newExponent = getDiv.exponent;
+        // RETURN_NUMBERVALUE(newMantissa, newExponent)
+        long long getDiv = this->mantissa / rightNumberValue.mantissa;
+        long long newMantissa = this->mantissa - (rightNumberValue.mantissa * getDiv);
+        long newExponent = this->exponent;
+        RETURN_NUMBERVALUE(newMantissa, newExponent)
+    }
+
     bool operator==(const NumberValue& rightNumberValue) const {
         return (this->mantissa == rightNumberValue.mantissa) && (this->exponent == rightNumberValue.exponent);
     };

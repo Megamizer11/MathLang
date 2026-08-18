@@ -36,11 +36,13 @@ struct TokenTypes {
         TokenType("MULT",         LexState::UNIQUE,      "*"         ),
         TokenType("DIVIDE",       LexState::UNIQUE,      "/"         ),
         TokenType("POWER",        LexState::UNIQUE,      "^"         ),
+        TokenType("PERCENT",      LexState::UNIQUE,      "%"         ),
 
         // Следующие типы токенов нужны для дополнительных возможностей (side эффекты, комментарии и т.д.)
         TokenType("PRINT",        LexState::UNIQUE,      "#PRINT"    ),  // Работает на уровне парсера и раннера
         TokenType("TEST",         LexState::UNIQUE,      "#TEST"     ),  // Работает на уровне парсера и раннера
-        TokenType("COMMENT",      LexState::UNIQUE,      "#COM"      )   // Работает на уровне лексера
+        TokenType("COMMENT",      LexState::UNIQUE,      "#COM"      ),  // Работает на уровне лексера
+        TokenType("SUMMA",        LexState::UNIQUE,      "#SUM"      )   // Работает на уровне парсера и раннера
     };
 
     TokenType& IDENTIFIER() { return data[0];  }
@@ -54,9 +56,11 @@ struct TokenTypes {
     TokenType& MULT()       { return data[8];  }
     TokenType& DIVIDE()     { return data[9];  }
     TokenType& POWER()      { return data[10]; }
-    TokenType& PRINT()      { return data[11]; }
-    TokenType& TEST()       { return data[12]; }
-    TokenType& COMMENT()    { return data[13]; }
+    TokenType& PERCENT()    { return data[11]; }
+    TokenType& PRINT()      { return data[12]; }
+    TokenType& TEST()       { return data[13]; }
+    TokenType& COMMENT()    { return data[14]; }
+    TokenType& SUMMA()      { return data[15]; }
 
     std::size_t size() const {
         return data.size();
