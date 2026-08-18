@@ -166,6 +166,7 @@ void SideEffectFuncNode::print(int indent = 0) {
     //     arg->print(indent+2);
     if (arg) arg->print(indent+2);
     if (arg2) arg2->print(indent+2);
+    if (arg3) arg3->print(indent+2);
 }
 
 void FunctionStatementNode::print(int indent = 0) {

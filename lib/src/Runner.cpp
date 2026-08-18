@@ -100,6 +100,20 @@ Value SideEffectFuncNode::runNode(VariableScope& varScope) {
         cout << ((val1 == val2) ? "true" : "false") << ", ";
         cout << val1 << ((val1 == val2) ? " == " : " != ") << val2 << endl;
     }
+    if (this->operToken.type.name == tokenTypes.SUMMA().name) {  // Реализовано меньше чем за 20 минут (!)
+        VariableScope localScope = varScope;
+        // std::string initVarName = this->arg
+        Value start = this->arg->runNode(localScope);
+        Value end = this->arg2->runNode(varScope);
+        // cout << "ST " << asNumberValue(start).asPrimitive() << " " << asNumberValue(end).asPrimitive() << endl;
+        NumberValue result = asNumberValue(start);
+        while (asNumberValue(start).asPrimitive() < asNumberValue(end).asPrimitive()) {
+            // cout << asNumberValue(start).asPrimitive() << " " << asNumberValue(end).asPrimitive() << endl;
+            start = asNumberValue(start) + NumberValue {1, 0};  // Инкремент
+            result = result + asNumberValue(start);
+        }
+        return result;
+    }
     return NumberValue {0};
 }
 

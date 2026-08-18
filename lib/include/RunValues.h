@@ -40,6 +40,10 @@ struct NumberValue {
         return getLiteralFromMantissaAndExponent(mantissa, exponent);
     }
 
+    long double asPrimitive() {
+        return this->mantissa * pow(10, this->exponent);
+    }
+
     NumberValue operator+(const NumberValue& rightNumberValue) {
         // Выражение 18*10^5 + 255*10^2 можно записать в виде: (18*10^(5-2) + 255*10^(2-2))*10^2 или: (18*10^3 + 255)*10^2 где 18*10^3 и 255 это и есть term1 и term2
         long minExp = std::min(this->exponent, rightNumberValue.exponent);
