@@ -82,18 +82,25 @@ struct NumberValue {
 };
 
 class ExpressionNode;
+class VariableNode;
 
-// struct FunctionValue {
-//     ExpressionNode* body;
+struct FunctionValue {
+    std::string name;
+    ExpressionNode* body;
+    std::vector<VariableNode*> args;
 
-//     Value getValue(VariableScope& varScope) {
-//         return body->runNode(varScope);
-//     }
-// };
+    // Value getValue(VariableScope& varScope) {
+    //     return body->runNode(varScope);
+    // }
+
+    bool operator==(const FunctionValue& rightNumberValue) const {
+        return false;  // Временно
+    };
+};
 
 using Value = mpark::variant<
-    NumberValue
-    // FunctionValue
+    NumberValue,
+    FunctionValue
 >;
 
 inline std::ostream& operator<<(std::ostream& os, const NumberValue& val) {
@@ -116,6 +123,7 @@ struct Variable {
 class VariableScope {
 public:
     std::vector<Variable> vars;
+    std::vector<FunctionValue> functions;
 
     VariableScope() {}
 
@@ -128,6 +136,18 @@ public:
             if (var.name == name)
                 return &var;
         }
-        throw RunnerException("VariableScope::getByName error: variable/function {got_literal} was not declarated at {pos}", errorTooltipToken);
+        throw RunnerException("VariableScope::getByName error: variable {got_literal} was not declarated at {pos}", errorTooltipToken);
+    }
+
+    void addFunction(FunctionValue func) {
+        functions.push_back(func);
+    }
+
+    const FunctionValue* getFunctionByName(std::string name, const Token errorTooltipToken) {
+        for (const FunctionValue& func : this->functions) {
+            if (func.name == name)
+                return &func;
+        }
+        throw RunnerException("VariableScope::getFunctionByName error: function {got_literal} was not declarated at {pos}", errorTooltipToken);
     }
 };

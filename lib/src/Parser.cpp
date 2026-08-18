@@ -66,8 +66,6 @@ Token* Parser::require(TokenType expected) {
         }
         throw ParserException("Parser::require error: required: \"{0}\" got: {got_literal} on pos: {pos}", tokenList[pos], 1, expected.literal);
     }
-    // throw ParserException("Parser::require error: reached token limit, expected \"{0}\", got: {got_literal} at: {pos} - " + to_string(pos), tokenList[pos], 1, expected.name);
-    // throw ParserException("Parser::require error: reached token limit, expected \"{0}\", got: {got_literal} at: {pos}", tokenList.back(), 1, expected.name);
     throw ParserException("Parser::require error: reached token limit, expected \"{0}\", at: {1}:{2}", tokenList.back(), 3,
             expected.name, to_string(tokenList.back().fLine), to_string(tokenList.back().fIndex + tokenList.back().literal.length()));
 }
@@ -102,31 +100,6 @@ unique_ptr<ExpressionNode> Parser::parseParentheses() {
     unique_ptr<ExpressionNode> expression = parsePrimary();
     return expression;
 }
-
-// unique_ptr<FunctionCallNode> Parser::parseFuncCall(bool argsAreVariablesOnly) {
-//     // Token *variableToken = match(tokenTypes.IDENTIFIER());
-//     // unique_ptr<FunctionCallNode> call;
-//     // while (checkNext(0, tokenTypes.OPEN_PAR()))
-//     unique_ptr<VariableNode> left = parseVariable();
-//     Token* openPar = require(tokenTypes.OPEN_PAR());
-//     unique_ptr<ExpressionNode> arg;
-//     if (argsAreVariablesOnly)
-//         arg = parseVariable();
-//     else
-//         arg = parseExpression();
-//     require(tokenTypes.CLOSE_PAR());
-//     vector<unique_ptr<ExpressionNode>> args = {move(arg)};
-//     return make_unique<FunctionCallNode>(*openPar, move(left), move(args));
-// }
-
-// unique_ptr<ExpressionNode> Parser::parseFunction() {
-//     Token *variableToken = match(tokenTypes.IDENTIFIER());
-//     require(tokenTypes.OPEN_PAR());
-//     unique_ptr<VariableNode> arg = parseVariable();
-//     require(tokenTypes.CLOSE_PAR());
-//     vector<unique_ptr<ExpressionNode>> args = {move(arg)};
-//     return make_unique<FunctionStatementNode>(*variableToken, nullptr, move(args));
-// }
 
 bool Parser::nextIsFunctionStatement() {
     if (checkNext(0, tokenTypes.IDENTIFIER()) && checkNext(1, tokenTypes.OPEN_PAR())) {
@@ -164,19 +137,6 @@ unique_ptr<FunctionCallNode> Parser::parseFuncCall() {
     return make_unique<FunctionCallNode>(*openPar, move(left), move(args));
 }
 
-// unique_ptr<ExpressionNode> BO_Parser::parseRepeatingFuncCall() {  // Нужен для парсинга повторяющихся вызовов функции: f()(); А также для сохранения приоритетов
-//     // На примере: f(1)(2)
-//     // unique_ptr<FuncCallValue> funcCall;
-//     unique_ptr<ExpressionNode> left = parseIndexing();  // Парсим "f"
-//     unique_ptr<FunctionCallNode> call;
-//     while (isNext(tokenTypes.LPAR())) {
-//         call = RAWparseFunctionCall();  // Парсим "(1)"
-//         call->callInitiatorNode = move(left);  // На первой итерации call - распарсенный f(1) со всеми данными
-//         left = move(call);
-//     }
-//     return left;
-// }
-
 unique_ptr<ExpressionNode> Parser::parseMultDiv() {
     unique_ptr<ExpressionNode> left = parseParentheses();
     Token *oper = match({tokenTypes.MULT(), tokenTypes.DIVIDE()});
@@ -204,27 +164,8 @@ unique_ptr<ExpressionNode> Parser::parseExpression() {
 }
 
 unique_ptr<ExpressionNode> Parser::parseStatement() {
-    // if (checkNext(0, tokenTypes.IDENTIFIER())) {  // a
-    //     unique_ptr<ExpressionNode> left;
-    //     if (checkNext(1, tokenTypes.OPEN_PAR())) {  // Мы знаем, что текущий и следующий токен это "a(" (a - имя функции)
-    //         left = move(parseFuncCall(true));
-    //     } else {  // Мы знаем, что будем парсить НЕ функцию. Предположительно "a =" или просто "a"
-    //         Token* variableToken = match(tokenTypes.IDENTIFIER());
-    //         left = make_unique<VariableNode>(*variableToken);
-    //     }
-    //     if (Token* equalsToken = match(tokenTypes.EQUALS())) {
-    //         unique_ptr<ExpressionNode> formulaNode = parseExpression();
-    //         return make_unique<BinNode>(*equalsToken, move(left), move(formulaNode));  // a = 1 + 1
-    //     }
-    //     return move(left);
-    // }
     if (checkNext(0, tokenTypes.IDENTIFIER())) {  // a
         if (checkNext(1, tokenTypes.OPEN_PAR())) {  // Мы знаем, что текущий и следующий токен это "a(" (a - имя функции)
-            // unique_ptr<FunctionStatementNode> funcDeclaration = parseFuncCall();
-            // if (Token* equalsToken = match(tokenTypes.EQUALS())) {
-            //     return move(funcDeclaration);
-            // }
-            // return move(funcDeclaration);
             if (nextIsFunctionStatement())
                 return parseFuncStatement();
             return parseFuncCall();
@@ -238,17 +179,6 @@ unique_ptr<ExpressionNode> Parser::parseStatement() {
         }
         // Т.к. было if (...) return else return, Эта строчка недостижима, лишних ошибок не будет
     }
-    // if (checkNext(0, tokenTypes.IDENTIFIER()) && checkNext(0, tokenTypes.OPEN_PAR())) {  // f(
-    //     unique_ptr<FunctionCallNode> funcDeclaration = move(parseFuncCall(true));
-    // }
-    // if (Token* variableToken = match(tokenTypes.IDENTIFIER())) {
-    //     unique_ptr<VariableNode> varNode = make_unique<VariableNode>(*variableToken);
-    //     if (Token* equalsToken = match(tokenTypes.EQUALS())) {
-    //         unique_ptr<ExpressionNode> formulaNode = parseExpression();
-    //         return make_unique<BinNode>(*equalsToken, move(varNode), move(formulaNode));  // a = 1 + 1
-    //     }
-    //     return move(varNode);  // a
-    // }
     if (Token* printToken = match(tokenTypes.PRINT())) {
         unique_ptr<ExpressionNode> arg = parseExpression();
         return make_unique<SideEffectFuncNode>(*printToken, move(arg), nullptr);

@@ -1,2 +1,11 @@
-f(x) = 2*x
-f(5)
+f(x) = x*x + x
+#TEST f(1) = 2
+#TEST f(2) = 6
+#TEST f(3) = 12
+#TEST f(4) = 20
+#TEST f(5) = 30
+#TEST f(6) = 42
+#TEST f(7) = 56
+#TEST f(8) = 72
+#TEST f(9) = 90
+#TEST f(10) = 110

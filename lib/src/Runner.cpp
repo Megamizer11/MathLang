@@ -23,7 +23,7 @@ NumberValue asNumberValue(const Value& val) {
     if (const NumberValue* valDec = mpark::get_if<NumberValue>(&val)) {
         return NumberValue {valDec->mantissa, valDec->exponent};
     } else {
-        throw runtime_error("BO_Runner > asFloatType error (must never happen): this value can\'t be float");
+        throw runtime_error("Runner > asFloatType error (must never happen): this value can\'t be float");
     }
 }
 
@@ -77,13 +77,13 @@ Value BinNode::runNode(VariableScope& varScope) {
             std::string varName = varNode->varToken.literal;
             Value varValue = this->right->runNode(varScope);
             varScope.addVar(Variable {varName, varValue});
-            return varValue;
+            return NumberValue {0};
         }
         // if (FunctionCallNode* funcDeclNode = dynamic_cast<FunctionCallNode*>(leftNode)) {  // f(...) = ...
         //     Value rawVal = funcDeclNode->callInitiator->runNode(varScope);  // Противоречие, что создать функцию f(x), нужно объявить runNode у f(x)
         // }
     }
-    throw RunnerException("BO_Runner::runNode error: bin operator error at: {pos}", operToken);
+    throw RunnerException("BinNode::runNode error: bin operator error at: {pos}", operToken);
 }
 
 Value SideEffectFuncNode::runNode(VariableScope& varScope) {
@@ -103,12 +103,35 @@ Value SideEffectFuncNode::runNode(VariableScope& varScope) {
 }
 
 Value FunctionStatementNode::runNode(VariableScope& varScope) {
+    std::string funcName = functionName.literal;
+    vector<VariableNode*> argPtrs = {};
+    for (const auto& arg : this->args)
+        argPtrs.push_back(arg.get());
+    FunctionValue funcVal = FunctionValue {funcName, this->body.get(), argPtrs};
+    // varScope.addVar(Variable {funcName, funcVal});
+    varScope.addFunction(funcVal);
     return NumberValue {0};
 }
 
 Value FunctionCallNode::runNode(VariableScope& varScope) {
-    // Value rawFuncValue = varScope.getByName(this->)
-    return NumberValue {0};
+    string callFunctionName = this->callInitiator->varToken.literal;
+    const FunctionValue* functionValue = varScope.getFunctionByName(callFunctionName, this->leftParToken);
+    if (functionValue->args.size() != this->args.size())
+        throw RunnerException("FunctionCallNode::runNode error: function {0} must be called with {1} arguments but {2} was given at: {pos}", this->leftParToken, 3, callFunctionName, functionValue->args.size(), this->args.size());
+    
+    VariableScope localScope = varScope;  // Копирование, после завершения FunctionCallNode::runNode localScope автоматически удалится
+    // На примере: f(x) = x^2; f(5+2)
+    for (int i = 0; i < this->args.size(); i++) {
+        ExpressionNode* givenArg = this->args[0].get();  // Указатель на ExpressionNode("5+2")
+        Value givenResult = givenArg->runNode(varScope);  // Считаем результат (5+2=7), тогда givenResult это NumberValue(7)
+
+        VariableNode* requiredArg = functionValue->args[0];  // Указатель на VariableNode("x")
+        string requiredArgName = requiredArg->varToken.literal;  // Получаем имя "x"
+
+        localScope.addVar(Variable {requiredArgName, givenResult});  // Склеиваем требуемый параметр и полученное к нему значение (x = 7)
+    }
+    Value result = functionValue->body->runNode(localScope);
+    return result;
 }
 
 Value RootNode::runNode(VariableScope& varScope) {
