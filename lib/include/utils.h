@@ -47,14 +47,14 @@ inline std::pair<long long, long> getMantissaAndExponentFromLiteral(std::string 
             exponent++;
         }
     } else {
-        int i = strMantissa.length() - 1;
+        unsigned int i = strMantissa.length() - 1;
         char ch = strMantissa[strMantissa.length() - 1];
         while (strMantissa[i] == '0') {  // Просто убираем лишние нули у дроби (у 13.20 strMantissa="1320" => strMantissa="132")
             strMantissa.pop_back();
             i--;
         }
 
-        int dotIdx = strMantissa.find(".");
+        unsigned int dotIdx = strMantissa.find(".");
         strMantissa.erase(dotIdx, 1);
         exponent = - (strMantissa.length() - dotIdx);
     }

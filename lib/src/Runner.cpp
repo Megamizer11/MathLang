@@ -81,7 +81,7 @@ Value BinNode::runNode(VariableScope& varScope) {
             std::string varName = varNode->varToken.literal;
             Value varValue = this->right->runNode(varScope);
             varScope.addVar(Variable {varName, varValue});
-            return NumberValue {0};
+            return varValue;
         }
     }
     throw RunnerException("BinNode::runNode error: bin operator error at: {pos}", operToken);

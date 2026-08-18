@@ -139,7 +139,8 @@ public:
     VariableScope() {}
 
     void addVar(Variable var) {
-        vars.push_back(var);
+        // vars.push_back(var);
+        vars.insert(vars.begin(), var);  // Помогает создать иллюзию вложенности
     }
 
     const Variable* getByName(std::string name, const Token errorTooltipToken) {
@@ -151,7 +152,7 @@ public:
     }
 
     void addFunction(FunctionValue func) {
-        functions.push_back(func);
+        functions.insert(functions.begin(), func);
     }
 
     const FunctionValue* getFunctionByName(std::string name, const Token errorTooltipToken) {

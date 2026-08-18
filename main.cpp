@@ -34,19 +34,24 @@ string readFromFile(std::string name) {
 // a = Σ 1/n!
 //    n=0
 
+// Grammer newGrammerRule = Grammer()
+// newGrammerRule.next(NonTerminal::EXPR).next(Terminal::EXCLAM)  // Грамматика для факториала
+
+// GrammerRule stmt = GrammerRule()
+// stmt.next() ...
+// GrammerRule sumOrDif = GrammerRule()
+// sumOrDif.or(
+//     sumOrDif.next(term),
+//     sumOrDif.next(term).next(Terminal::PLUS).next(term),
+//     sumOrDif.next(term).next(Terminal::MINUS).next(term)
+// )
+// Grammer parenthesis = Grammer().match(Terminal::OPEN_PAR).require(expr).require(Terminal::CLOSE_PAR)
+
 int main() {
     string code = readFromFile("code.mthl");
     Lexer lexer = Lexer(code, true);
     Parser parser = Parser(lexer.tokenList, true);
     Runner runner = Runner(parser.rootNode);
     runner.run();
-    // // std::pair<long long, long> mantAndExp = getMantissaAndExponentFromLiteral("2350.030");
-    // // std::pair<long long, long> mantAndExp = getMantissaAndExponentFromLiteral("0");
-    // // std::pair<long long, long> mantAndExp = getMantissaAndExponentFromLiteral("1.0");
-    // // std::pair<long long, long> mantAndExp = getMantissaAndExponentFromLiteral("-10.01");
-    // std::pair<long long, long> mantAndExp = getMantissaAndExponentFromLiteral("10.0");
-    // std::string lit = getLiteralFromMantissaAndExponent(mantAndExp.first, mantAndExp.second);
-    // // cout << "lit->\"" << lit << "\" " << mantAndExp.first << " " << mantAndExp.second << " " << mantAndExp.first * pow(10, mantAndExp.second) << endl;
-    // cout << "lit->\"" << lit << "\" " << mantAndExp.first << " " << mantAndExp.second << " " << endl;
     return 0;
 }

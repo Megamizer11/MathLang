@@ -36,8 +36,12 @@
  - \<func_decl\> ⟶ id ( id (, id)* ) = \<expr\>
  - \<func_call\> ⟶ id ( <expr\> (, \<expr\>)* )
  - \<expr\> ⟶ \<sum\>
- - \<sum\> ⟶ \<term\> | \<term\> + \<expr\>
- - \<term\> ⟶ \<pow\> | \<pow\> + \<term\>
+ - \<sum\> ⟶ \<term\> | \<term\> + \<expr\> \<term\> - \<expr\> 
+ - \<term\> ⟶ \<pow\> | \<pow\> * \<term\> | \<pow\> / \<term\>
  - \<pow\> ⟶ \<par\> | \<par\> ^ \<pow\>
  - \<par\> ⟶ ( \<expr\> ) | \<prime\>
  - \<prime\> ⟶ \<func_call\> | id | num
+
+id - identificator (Название переменное или функции).  
+num - number (число).  
+sum обознчает сумму или разность (так как у них одинаковых приоритет).
