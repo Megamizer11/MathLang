@@ -47,7 +47,7 @@ string readFromFile(std::string name) {
 // )
 // Grammer parenthesis = Grammer().match(Terminal::OPEN_PAR).require(expr).require(Terminal::CLOSE_PAR)
 
-// Я хочу просто добить 10 коммитов за день
+// Код очень сильно загрязнился и в нём, скорее всего, появилось много ошибок. Его нужно будет почистить и сделать код ревью
 int main() {
     string code = readFromFile("code.mthl");
     Lexer lexer = Lexer(code, true);

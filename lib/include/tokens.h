@@ -42,25 +42,27 @@ struct TokenTypes {
         TokenType("PRINT",        LexState::UNIQUE,      "#PRINT"    ),  // Работает на уровне парсера и раннера
         TokenType("TEST",         LexState::UNIQUE,      "#TEST"     ),  // Работает на уровне парсера и раннера
         TokenType("COMMENT",      LexState::UNIQUE,      "#COM"      ),  // Работает на уровне лексера
-        TokenType("SUMMA",        LexState::UNIQUE,      "#SUM"      )   // Работает на уровне парсера и раннера
+        TokenType("SUMMA",        LexState::UNIQUE,      "#SUM"      ),  // Работает на уровне парсера (в качестве выражения) и раннера
+        TokenType("NATURAL_LOG",  LexState::UNIQUE,      "#LN"       )   // Работает на уровне парсера (в качестве выражения) и раннера
     };
 
-    TokenType& IDENTIFIER() { return data[0];  }
-    TokenType& NUMBER()     { return data[1];  }
-    TokenType& OPEN_PAR()   { return data[2];  }
-    TokenType& CLOSE_PAR()  { return data[3];  }
-    TokenType& COMMA()      { return data[4];  }
-    TokenType& EQUALS()     { return data[5];  }
-    TokenType& PLUS()       { return data[6];  }
-    TokenType& MINUS()      { return data[7];  }
-    TokenType& MULT()       { return data[8];  }
-    TokenType& DIVIDE()     { return data[9];  }
-    TokenType& POWER()      { return data[10]; }
-    TokenType& PERCENT()    { return data[11]; }
-    TokenType& PRINT()      { return data[12]; }
-    TokenType& TEST()       { return data[13]; }
-    TokenType& COMMENT()    { return data[14]; }
-    TokenType& SUMMA()      { return data[15]; }
+    TokenType& IDENTIFIER()  { return data[0];  }
+    TokenType& NUMBER()      { return data[1];  }
+    TokenType& OPEN_PAR()    { return data[2];  }
+    TokenType& CLOSE_PAR()   { return data[3];  }
+    TokenType& COMMA()       { return data[4];  }
+    TokenType& EQUALS()      { return data[5];  }
+    TokenType& PLUS()        { return data[6];  }
+    TokenType& MINUS()       { return data[7];  }
+    TokenType& MULT()        { return data[8];  }
+    TokenType& DIVIDE()      { return data[9];  }
+    TokenType& POWER()       { return data[10]; }
+    TokenType& PERCENT()     { return data[11]; }
+    TokenType& PRINT()       { return data[12]; }
+    TokenType& TEST()        { return data[13]; }
+    TokenType& COMMENT()     { return data[14]; }
+    TokenType& SUMMA()       { return data[15]; }
+    TokenType& NATURAL_LOG() { return data[16]; }
 
     std::size_t size() const {
         return data.size();

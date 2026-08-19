@@ -81,6 +81,12 @@ unique_ptr<ExpressionNode> Parser::parsePrimary() {  // аналогично par
     if (checkNext(0, tokenTypes.IDENTIFIER()), checkNext(1, tokenTypes.OPEN_PAR())) {
         return parseFuncCall();
     }
+    if (checkNext(0, tokenTypes.SUMMA())) {
+        return parseSumma();
+    }
+    if (checkNext(0, tokenTypes.NATURAL_LOG())) {
+        return parseNaturalLog();
+    }
     Token *variableToken = match(tokenTypes.IDENTIFIER());
     if (variableToken != 0) {
         return make_unique<VariableNode>(*variableToken);
@@ -177,6 +183,33 @@ unique_ptr<FunctionCallNode> Parser::parseFuncCall() {
     return make_unique<FunctionCallNode>(*openPar, move(left), move(args));
 }
 
+unique_ptr<SideEffectFuncNode> Parser::parseSumma() {
+    Token* printToken = require(tokenTypes.SUMMA());  // #SUMM n = 1, 10, n
+    unique_ptr<VariableNode> varNode = parseVariable();
+    Token *equalsToken = require(tokenTypes.EQUALS());
+    unique_ptr<ExpressionNode> start = parseExpression();
+    // unique_ptr<BinNode> varDecl = make_unique<BinNode>(*equalsToken, move(varNode), move(start));
+    require(tokenTypes.COMMA());
+    unique_ptr<ExpressionNode> end = parseExpression();
+    require(tokenTypes.COMMA());
+    unique_ptr<ExpressionNode> mainExpr = parseExpression();
+
+    vector<std::unique_ptr<ExpressionNode>> args = {};
+    args.push_back(move(varNode));
+    args.push_back(move(start));
+    args.push_back(move(end));
+    args.push_back(move(mainExpr));
+    return make_unique<SideEffectFuncNode>(*printToken, move(args));
+}
+unique_ptr<SideEffectFuncNode> Parser::parseNaturalLog() {
+    Token* printToken = require(tokenTypes.NATURAL_LOG());  // #LN 2
+    unique_ptr<ExpressionNode> arg = parseExpression();
+
+    vector<std::unique_ptr<ExpressionNode>> args = {};
+    args.push_back(move(arg));
+    return make_unique<SideEffectFuncNode>(*printToken, move(args));
+}
+
 unique_ptr<ExpressionNode> Parser::parseExpression() {
     return parsePlusMinus();
 }
@@ -199,24 +232,20 @@ unique_ptr<ExpressionNode> Parser::parseStatement() {
     }
     if (Token* printToken = match(tokenTypes.PRINT())) {
         unique_ptr<ExpressionNode> arg = parseExpression();
-        return make_unique<SideEffectFuncNode>(*printToken, move(arg), nullptr, nullptr);
+
+        vector<std::unique_ptr<ExpressionNode>> args = {};
+        args.push_back(move(arg));
+        return make_unique<SideEffectFuncNode>(*printToken, move(args));
     }
     if (Token* printToken = match(tokenTypes.TEST())) {
         unique_ptr<ExpressionNode> arg = parseExpression();
         require(tokenTypes.EQUALS());
         unique_ptr<ExpressionNode> arg2 = parseExpression();
-        return make_unique<SideEffectFuncNode>(*printToken, move(arg), move(arg2), nullptr);
-    }
-    if (Token* printToken = match(tokenTypes.SUMMA())) {  // #SUMM n = 1, 10, n
-        unique_ptr<VariableNode> varNode = parseVariable();
-        Token *equalsToken = require(tokenTypes.EQUALS());
-        unique_ptr<ExpressionNode> start = parseExpression();
-        unique_ptr<BinNode> varDecl = make_unique<BinNode>(*equalsToken, move(varNode), move(start));
-        require(tokenTypes.COMMA());
-        unique_ptr<ExpressionNode> end = parseExpression();
-        require(tokenTypes.COMMA());
-        unique_ptr<ExpressionNode> mainExpr = parseExpression();
-        return make_unique<SideEffectFuncNode>(*printToken, move(varDecl), move(end), move(mainExpr));
+
+        vector<std::unique_ptr<ExpressionNode>> args = {};
+        args.push_back(move(arg));
+        args.push_back(move(arg2));
+        return make_unique<SideEffectFuncNode>(*printToken, move(args));
     }
     return parseExpression();  // 1 + 2  // Из-за return move(left); (выше в этой функции) эта строка парсит выражения (как отдельные строки) по типу 1 + d, а просто d парсит return move(left);
 }

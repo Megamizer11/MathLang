@@ -14,7 +14,7 @@
 #include "utils.h"
 
 #define RETURN_NUMBERVALUE(rawMantissa, rawExponent) \
-    /* В выражении 36 + 84 может получиться мантисса, равная 120 (это) */ \
+    /* В выражении 36 + 84 может получиться мантисса, равная 120 (так быть не должно). Макрос преобразует мантиссу и экспоненту {120, 0} в  {12, 1} */ \
     { if (rawMantissa == 0) return NumberValue {0, 0}; \
     long long _resultMantissa = rawMantissa; \
     long _resultExp = rawExponent; \
@@ -40,8 +40,25 @@ struct NumberValue {
         return getLiteralFromMantissaAndExponent(mantissa, exponent);
     }
 
-    long double asPrimitive() {
+    long double asPrimitive() const {
         return this->mantissa * pow(10, this->exponent);
+    }
+
+    static NumberValue asNumberValue(long double num) {
+        long exp = 10;  // Халтурный способ захардкодить экспоненту
+        long long mantissa = std::round(num * pow(10, exp));
+        RETURN_NUMBERVALUE(mantissa, -exp)
+    }
+
+    NumberValue getRounded(bool isDown) {  // isDown=true - округление вниз, isDown=false - округление вверх
+        // Для числа 12.34 (NumberValue {1234, -2}) мы должны целочисленно разделить мантиссу на 100: 1234 / 100 = 12, это и будет мантисса нового числа. Новая экспонента будет равна нулю
+        if (exponent >= 0)  // Гарантированно целое число
+            return *this;  // Копируем текущий объект
+        long long divFactor = std::round(pow(10, -this->exponent));
+        long long newMantissa = this->mantissa / divFactor;  // Мантисса уже нормализована, она гарантированно не оканчивается на 0
+        if (!isDown) newMantissa++;
+        long newExponent = 0;
+        return NumberValue {newMantissa, newExponent};  // Т.к. мантисса не оканчивается на 0, можно обойтись без макроса RETURN_NUMBERVALUE
     }
 
     NumberValue operator+(const NumberValue& rightNumberValue) {
@@ -80,15 +97,28 @@ struct NumberValue {
         RETURN_NUMBERVALUE(rawMantissa, exp)
     }
 
+    // NumberValue raiseToAPowerOf(const NumberValue& rightNumberValue) {
+    //     // (5*10^3)^(4*10^6) = 5^(4*10^6) * 10^(3*4*10^6)
+    //     // Но (3153*10^-3)^(45*10^-1) = 3153^4.5 * 10^(-3*)
+    //     int fixedDecimalAccuracy = 0;
+    //     int accuracyCoeff = std::round(pow(10, fixedDecimalAccuracy));
+    //     double expandedRightMantissa = (rightNumberValue.mantissa * pow(10, rightNumberValue.exponent));
+    //     long long newMantissa = std::round(accuracyCoeff * pow(this->mantissa, expandedRightMantissa));  // Это ужасная строчка.
+    //     // Так как мы возводим мантиссу в степень, то при большой точности мантиссы с легкостью можно получить stack overflow и неправильный результат
+    //     // 1.0001 ^ 4.8 при fixedDecimalAccuracy=0 уже вызывает переполнение стэка
+    //     std::cout << "prim " << expandedRightMantissa << " " << newMantissa << std::endl;
+    //     long newExponent = -fixedDecimalAccuracy + this->exponent * expandedRightMantissa;
+    //     RETURN_NUMBERVALUE(newMantissa, newExponent)
+    //     // return NumberValue {newMantissa, newExponent};
+    // }
+
     NumberValue raiseToAPowerOf(const NumberValue& rightNumberValue) {
-        // (5*10^3)^(4*10^6) = 5^(4*10^6) * 10^(3*4*10^6)
-        int fixedDecimalAccuracy = 5;
-        int accuracyCoeff = std::round(pow(10, fixedDecimalAccuracy));
-        double expandedRightMantissa = (rightNumberValue.mantissa * pow(10, rightNumberValue.exponent));
-        long long newMantissa = (accuracyCoeff * pow(this->mantissa, expandedRightMantissa));
-        long newExponent = -fixedDecimalAccuracy + this->exponent * expandedRightMantissa;
-        RETURN_NUMBERVALUE(newMantissa, newExponent)
-        // return NumberValue {newMantissa, newExponent};
+        // Из-за сильных проблем с точностью в предыдущей версии этой функции, она временно переделана
+        long double thisExpanded = this->asPrimitive();
+        long double rightExpanded = rightNumberValue.asPrimitive();
+        long double result = pow(thisExpanded, rightExpanded);
+        // std::cout << "AAAAAAAAA " << result << std::endl;
+        return NumberValue::asNumberValue(result);
     }
 
     NumberValue getRemainder(const NumberValue& rightNumberValue) {  // Получить остаток от деления: 11 % 3 = 2
@@ -100,6 +130,23 @@ struct NumberValue {
         long long newMantissa = this->mantissa - (rightNumberValue.mantissa * getDiv);
         long newExponent = this->exponent;
         RETURN_NUMBERVALUE(newMantissa, newExponent)
+    }
+
+    long double _getNaturalLoggedPrimitive() {
+        // ln(5*10^3) = ln5 + ln(10^3) = ln5 + 3ln10
+        double log10e = log(10);
+        long double lnMantissa = log(this->mantissa);
+        long double lnExp = this->exponent * log10e;
+        long double result = lnMantissa + lnExp;
+        return result;
+    }
+
+    NumberValue getNaturalLogged() {
+        long double primitiveNumber = _getNaturalLoggedPrimitive();
+        int fixedDecimalAccuracy = 10;
+        long long newMantissa = primitiveNumber * pow(10, fixedDecimalAccuracy);
+        long newExp = -fixedDecimalAccuracy;
+        RETURN_NUMBERVALUE(newMantissa, newExp)
     }
 
     bool operator==(const NumberValue& rightNumberValue) const {
@@ -146,22 +193,83 @@ struct Variable {
     Value value;
 };
 
+// class VariableScope {
+// public:
+//     std::vector<Variable> vars;
+//     std::vector<FunctionValue> functions;
+
+//     VariableScope() {}
+
+//     void printAllVars(int indent = 0) {
+//         std::cout << std::string(indent, ' ') << "VARS: " << std::endl;
+//         for (const Variable& var : this->vars) {
+//             std::cout << std::string(indent + 2, ' ') << "name: " << var.name << ", value: " << var.value << std::endl;
+//         }
+//         std::cout << std::string(indent, ' ') << "PRINT VARS END" << std::endl;
+//     }
+
+//     void addVar(Variable var) {
+//         // vars.push_back(var);
+//         vars.insert(vars.begin(), var);  // Помогает создать иллюзию вложенности
+//     }
+
+//     void addVarRef(Variable& var) {
+//         // vars.push_back(var);
+//         vars.insert(vars.begin(), var);  // Помогает создать иллюзию вложенности
+//     }
+
+//     const Variable* getByName(std::string name, const Token errorTooltipToken) {
+//         for (const Variable& var : this->vars) {
+//             if (var.name == name)
+//                 return &var;
+//         }
+//         throw RunnerException("VariableScope::getByName error: variable {got_literal} was not declarated at {pos}", errorTooltipToken);
+//     }
+
+//     void addFunction(FunctionValue func) {
+//         functions.insert(functions.begin(), func);
+//     }
+
+//     const FunctionValue* getFunctionByName(std::string name, const Token errorTooltipToken) {
+//         for (const FunctionValue& func : this->functions) {
+//             if (func.name == name)
+//                 return &func;
+//         }
+//         throw RunnerException("VariableScope::getFunctionByName error: function {got_literal} was not declarated at {pos}", errorTooltipToken);
+//     }
+// };
+
 class VariableScope {
 public:
-    std::vector<Variable> vars;
+    using shared_var = std::shared_ptr<Variable>;
+
+    std::vector<shared_var> vars;
     std::vector<FunctionValue> functions;
 
     VariableScope() {}
 
+    void printAllVars(int indent = 0) {
+        std::cout << std::string(indent, ' ') << "VARS: " << std::endl;
+        for (const shared_var& var : this->vars) {
+            std::cout << std::string(indent + 2, ' ') << "name: " << var->name << ", value: " << var->value << std::endl;
+        }
+        std::cout << std::string(indent, ' ') << "PRINT VARS END" << std::endl;
+    }
+
     void addVar(Variable var) {
+        vars.insert(vars.begin(), std::make_shared<Variable>(var));
+    }
+
+    void addVar(std::shared_ptr<Variable> var) {
         // vars.push_back(var);
-        vars.insert(vars.begin(), var);  // Помогает создать иллюзию вложенности
+        vars.insert(vars.begin(), var);  // insert помогает создать иллюзию вложенности
     }
 
     const Variable* getByName(std::string name, const Token errorTooltipToken) {
-        for (const Variable& var : this->vars) {
-            if (var.name == name)
-                return &var;
+        for (const shared_var& var : this->vars) {
+            if (var->name == name)
+                // return &*var;
+                return var.get();
         }
         throw RunnerException("VariableScope::getByName error: variable {got_literal} was not declarated at {pos}", errorTooltipToken);
     }

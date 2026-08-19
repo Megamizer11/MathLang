@@ -27,6 +27,8 @@ private:
     bool nextIsFunctionStatement();
     std::unique_ptr<FunctionStatementNode> parseFuncStatement();
     std::unique_ptr<FunctionCallNode> parseFuncCall();
+    std::unique_ptr<SideEffectFuncNode> parseSumma();  // Для суммы пришлось создать отдельную parse функцию, т.к. она может быть частью выражения: a = (#SUM n=1, 10, n^2) * 2
+    std::unique_ptr<SideEffectFuncNode> parseNaturalLog();
     
     std::unique_ptr<ExpressionNode> parseExpression();
     std::unique_ptr<ExpressionNode> parseStatement();
