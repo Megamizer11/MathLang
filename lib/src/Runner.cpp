@@ -110,20 +110,6 @@ Value SideEffectFuncNode::runNode(VariableScope& varScope) {
         cout << ((val1 == val2) ? "true" : "false") << ", ";
         cout << val1 << ((val1 == val2) ? " == " : " != ") << val2 << endl;
     }
-    // if (this->operToken.type.name == tokenTypes.SUMMA().name) {  // Реализовано меньше чем за 20 минут (!)
-    //     VariableScope localScope = varScope;
-    //     // Для #SUM n=0.8, 10.5, n, start равен 0.8, а end равен 10.5, по правилам математики start округлить нужно в большую сторону (до 1), а end в меньшую (до 10)
-    //     NumberValue start = asNumberValue(this->args[0]->runNode(localScope)).getRounded(false);
-    //     NumberValue end = asNumberValue(this->args[1]->runNode(varScope)).getRounded(true);
-    //     // NumberValue change;
-    //     NumberValue result = start;
-    //     while (start.asPrimitive() < end.asPrimitive()) {
-    //         start = start + NumberValue {1, 0};  // Инкремент
-    //         // change = asNumberValue(this->args[2]->runNode(localScope));
-    //         result = result + start;
-    //     }
-    //     return result;
-    // }
     if (this->operToken.type.name == tokenTypes.SUMMA().name) {  // Реализовано меньше чем за 20 минут (!)
         // Для #SUM n=0.8, 10.5, n, start равен 0.8, а end равен 10.5, по правилам математики start округлить нужно в большую сторону (до 1), а end в меньшую (до 10)
         ExpressionNode* argVarNode  = this->args[0].get();  //
@@ -139,18 +125,14 @@ Value SideEffectFuncNode::runNode(VariableScope& varScope) {
             NumberValue end = asNumberValue(rawEnd).getRounded(true);
 
             shared_ptr<Variable> tempVar(new Variable {varNode->varToken.literal, start});
-            // NumberValue* current = &asNumberValue(tempVar->value);
             NumberValue* currentTempValue = &asNumberValueOriginal(tempVar->value);
             localScope.addVar(tempVar);
 
             Value rawChange = argMainExpr->runNode(localScope);
             NumberValue change = asNumberValue(rawChange);
             NumberValue result = change;
-            // tempVar.value = NumberValue {40, 1};
-            // NumberValue result = NumberValue {12, 0};
 
             while (currentTempValue->asPrimitive() < end.asPrimitive()) {
-                // tempVar->value = asNumberValue(tempVar->value) + NumberValue {1, 0};  // Инкремент
                 *currentTempValue = *currentTempValue + NumberValue {1, 0};  // Инкремент
 
                 rawChange = argMainExpr->runNode(localScope);
@@ -158,59 +140,8 @@ Value SideEffectFuncNode::runNode(VariableScope& varScope) {
                 result = result + change;
             }
 
-            // localScope.printAllVars();
-            // while (current->asPrimitive() < end.asPrimitive()) {
-            //     *current = asNumberValue(tempVar.value) + NumberValue {1, 0};  // Инкремент
-
-            //     rawChange = argMainExpr->runNode(localScope);
-            //     change = asNumberValue(rawChange);
-            //     // cout << tempVar.value << " " << *current << " " << change << endl;
-            //     result = result + *current;
-            //     // localScope.printAllVars();
-            // }
-
-            // vector<Variable> lsTest;
-            // Variable tempVar = Variable {"n", NumberValue {15, 0}};
-            // lsTest.push_back(tempVar);
-            // tempVar.value = NumberValue {40, 1};
-            // cout << "TEMP " << tempVar.value << endl;  // 400
-            // cout << "ORIG " << lsTest[0].value << endl;  // 15
-            
-            // vector<std::shared_ptr<Variable>> lsTest;
-            // std::shared_ptr<Variable> tempVar(new Variable {"n", NumberValue {15, 0}});
-            // lsTest.push_back(tempVar);
-            // tempVar->value = NumberValue {40, 1};
-            // cout << "TEMP " << tempVar->value << endl;
-            // cout << "ORIG " << lsTest[0]->value << endl;
-
             return result;
         }
-
-    //     if (VariableNode* varNode = dynamic_cast<VariableNode*>(argVarNode)) {
-    //         VariableScope localScope = varScope;
-    //         Value rawStart = argStart->runNode(varScope);
-    //         NumberValue start = asNumberValue(rawStart).getRounded(false);
-    //         Value rawEnd = argEnd->runNode(varScope);
-    //         NumberValue end = asNumberValue(rawEnd).getRounded(true);
-
-    //         string tempVarName = varNode->varToken.literal;
-    //         localScope.addVar(Variable {tempVarName, start});
-    //         const Variable* tempVar = localScope.getByName(tempVarName);
-
-    //         Value rawChange;
-    //         NumberValue change;
-    //         NumberValue result = start;
-    //         while (tempVar->value->asPrimitive() < end.asPrimitive()) {
-    //             *current = asNumberValue(tempVar.value) + NumberValue {1, 0};  // Инкремент
-    //             // cout << tempVar.value << " " << *current << " " << change << endl;
-    //             localScope.printAllVars();
-
-    //             rawChange = argMainExpr->runNode(localScope);
-    //             change = asNumberValue(rawChange);
-    //             result = result + *current;
-    //         }
-    //         return result;
-    //     }
     }
     if (this->operToken.type.name == tokenTypes.NATURAL_LOG().name) {
         NumberValue arg = asNumberValue(this->args[0]->runNode(varScope));

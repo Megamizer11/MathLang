@@ -1,0 +1,41 @@
+Для улучшения точности:
+1. Можно считать промежуточные ответы в большей точности, а на экран выводить с точностью на пару знаков меньше:
+Если представить sqrt(2) как 1.41421356237, а потом перемножить sqrt(2) на sqrt(2), это будет:
+1.41421356237 * 1.41421356237 = 1.99999999998, но понизив точность ответа, на экран выведется 2.
+2. Использовать символьное счисления: Не хранить число как NumberValue {mantissa, exponent}, а как набор
+элементарных функций: сложение, умножение, дробь, корень, логарифм, степень и т.д. Этот (и предыдущий) метод используют многие продвинутые калькуляторы
+Этот метод ещё хорош тем, что через него можно легче ввести дифференцирование
+
+В теории такой синтаксис можно реализовать
+∞
+⌠
+⌡ ƒ(x)δx
+-∞
+    ∞
+a = Σ 1/n!
+   n=0
+
+Grammer newGrammerRule = Grammer()
+newGrammerRule.next(NonTerminal::EXPR).next(Terminal::EXCLAM)  // Грамматика для факториала
+
+GrammerRule stmt = GrammerRule()
+stmt.next() ...
+GrammerRule sumOrDif = GrammerRule()
+sumOrDif.or(
+    sumOrDif.next(term),
+    sumOrDif.next(term).next(Terminal::PLUS).next(term),
+    sumOrDif.next(term).next(Terminal::MINUS).next(term)
+)
+Grammer parenthesis = Grammer().match(Terminal::OPEN_PAR).require(expr).require(Terminal::CLOSE_PAR)
+
+#IF <condition>, <expr>: #IF a > 5, 2*a: при a > 5 возвращает 2*a, иначе возвращает 0
+
+f(x) = ...  => f(expr)
+(x!) = ...  => x!
+или: #DEF(|x|) = (#IF x > 0, x) + (#IF x < 0, -x)
+
+Можно на этапе препроцессора вставлять уже написанный заранее текст в код (как стандартную библиотеку)
+Например:
+ln(x) = #LN x
+log(x, a) = ln(x) / ln(a)
+(x!) = e ^ (#SUM k=1, n, #LN k)

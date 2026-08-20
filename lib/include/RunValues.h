@@ -13,6 +13,8 @@
 #include "exceptions.h"
 #include "utils.h"
 
+#define PRINT_PRECISION 8
+
 #define RETURN_NUMBERVALUE(rawMantissa, rawExponent) \
     /* В выражении 36 + 84 может получиться мантисса, равная 120 (так быть не должно). Макрос преобразует мантиссу и экспоненту {120, 0} в  {12, 1} */ \
     { if (rawMantissa == 0) return NumberValue {0, 0}; \
@@ -27,10 +29,13 @@
         _resultExp \
     };}
 
+
 struct NumberValue {
     // Обычное число получается так: mantissa * 10^exponent
     long long mantissa;  // Для числа 12.345 это 12345, для 12000 это 12, мантисса может быть отрицательной, мантисса не может оканчиваться на ноль (исключение - мантисса равна нулю)
     long exponent;       // Для числа 12.345 это -3, для 12000 это 3, экспонента может быть отрицательной
+
+    // using mantExp = std::pair<long long, long>;
 
     bool isInt() {
         return exponent >= 0;
@@ -48,6 +53,40 @@ struct NumberValue {
         long exp = 10;  // Халтурный способ захардкодить экспоненту
         long long mantissa = std::round(num * pow(10, exp));
         RETURN_NUMBERVALUE(mantissa, -exp)
+    }
+
+    // Понижает точность мантиссы, что предотвращает переполнение стэка (pi: NumberValue{31415926535, -10} -> NumberValue{314, -2})
+    NumberValue getBalanced(long maxMantissaLength, bool rounding = false) const {
+        bool isNegative = this->mantissa < 0;
+        long long newMantissa = this->mantissa;
+        long newExponent = this->exponent;
+        if (isNegative)
+            newMantissa *= -1;
+        long mantissaLen = floor(log10(newMantissa)) + 1;
+        if (mantissaLen <= maxMantissaLength)
+            return *this;  // {23, 10}(4) -> {23, 10}
+        long divFactor = mantissaLen - maxMantissaLength;
+        int lastNumber;
+        for (;divFactor >= 0; divFactor--) {
+            lastNumber = newMantissa % 10;
+            newMantissa = newMantissa / 10;  // Целочисленно делим мантиссу на 10 (31415 -> 3141)
+            if (rounding && lastNumber >= 5)  // Окургление по правилам математики
+                newMantissa++;
+            newExponent++;  // Восстанавливаем порядок с помощью увеличения экспоненты
+
+        }
+        return NumberValue {newMantissa, newExponent};
+    }
+
+    NumberValue getNormalized() {
+        if (this->mantissa == 0) return NumberValue {0, 0};
+        long long resultMantissa = this->mantissa;
+        long resultExp = this->exponent;
+        while (resultMantissa % 10 == 0) {
+            resultMantissa = resultMantissa / 10;
+            resultExp++;
+        }
+        return NumberValue {resultMantissa, resultExp};
     }
 
     NumberValue getRounded(bool isDown) {  // isDown=true - округление вниз, isDown=false - округление вверх
@@ -82,8 +121,13 @@ struct NumberValue {
 
     NumberValue operator*(const NumberValue& rightNumberValue) {
         // С умножением всё проще, чем с делением: выражение 18*10^5 * 255*10^2 можно записать в виде: (18*255)*10^(5+2)
-        long long rawMantissa = this->mantissa * rightNumberValue.mantissa;
-        long exp = this->exponent + rightNumberValue.exponent;
+        // Точность long long ~= 9.2*10^18, при умножении чисел, максимальная длина ответа (примерно) складывается из длин умножаемых чисел
+        // Тогда, чтобы не было переполнения числа, каждой мантиссе стоит установить максимальную длину, равную 9. При сложении длина финальной мантиссы будет <=18, что не вызовет переполнение числа
+        NumberValue balancedThis = this->getBalanced(9);
+        NumberValue balancedRight = rightNumberValue.getBalanced(9);
+        long long rawMantissa = balancedThis.mantissa * balancedRight.mantissa;
+        long exp = balancedThis.exponent + balancedRight.exponent;
+        // std::cout << balancedThis.mantissa << " " << balancedRight.mantissa << std::endl;
         RETURN_NUMBERVALUE(rawMantissa, exp)
     }
 
@@ -117,15 +161,10 @@ struct NumberValue {
         long double thisExpanded = this->asPrimitive();
         long double rightExpanded = rightNumberValue.asPrimitive();
         long double result = pow(thisExpanded, rightExpanded);
-        // std::cout << "AAAAAAAAA " << result << std::endl;
         return NumberValue::asNumberValue(result);
     }
 
     NumberValue getRemainder(const NumberValue& rightNumberValue) {  // Получить остаток от деления: 11 % 3 = 2
-        // NumberValue getDiv = *this / rightNumberValue;
-        // long long newMantissa = this->mantissa - (rightNumberValue.mantissa * getDiv.mantissa);
-        // long newExponent = getDiv.exponent;
-        // RETURN_NUMBERVALUE(newMantissa, newExponent)
         long long getDiv = this->mantissa / rightNumberValue.mantissa;
         long long newMantissa = this->mantissa - (rightNumberValue.mantissa * getDiv);
         long newExponent = this->exponent;
@@ -162,10 +201,6 @@ struct FunctionValue {
     ExpressionNode* body;
     std::vector<VariableNode*> args;
 
-    // Value getValue(VariableScope& varScope) {
-    //     return body->runNode(varScope);
-    // }
-
     bool operator==(const FunctionValue& rightNumberValue) const {
         return false;  // Временно
     };
@@ -177,7 +212,9 @@ using Value = mpark::variant<
 >;
 
 inline std::ostream& operator<<(std::ostream& os, const NumberValue& val) {
-    return os << val.getAsString();
+    return os << val.getBalanced(PRINT_PRECISION, true)  // 1.99999982358225 -> 2.000
+                    .getNormalized()                     // 2.000 -> 2
+                    .getAsString();                      // 2 -> "2"
 }
 
 inline std::ostream& operator<<(std::ostream& os, const Value& valueType) {
@@ -192,52 +229,6 @@ struct Variable {
     std::string name;
     Value value;
 };
-
-// class VariableScope {
-// public:
-//     std::vector<Variable> vars;
-//     std::vector<FunctionValue> functions;
-
-//     VariableScope() {}
-
-//     void printAllVars(int indent = 0) {
-//         std::cout << std::string(indent, ' ') << "VARS: " << std::endl;
-//         for (const Variable& var : this->vars) {
-//             std::cout << std::string(indent + 2, ' ') << "name: " << var.name << ", value: " << var.value << std::endl;
-//         }
-//         std::cout << std::string(indent, ' ') << "PRINT VARS END" << std::endl;
-//     }
-
-//     void addVar(Variable var) {
-//         // vars.push_back(var);
-//         vars.insert(vars.begin(), var);  // Помогает создать иллюзию вложенности
-//     }
-
-//     void addVarRef(Variable& var) {
-//         // vars.push_back(var);
-//         vars.insert(vars.begin(), var);  // Помогает создать иллюзию вложенности
-//     }
-
-//     const Variable* getByName(std::string name, const Token errorTooltipToken) {
-//         for (const Variable& var : this->vars) {
-//             if (var.name == name)
-//                 return &var;
-//         }
-//         throw RunnerException("VariableScope::getByName error: variable {got_literal} was not declarated at {pos}", errorTooltipToken);
-//     }
-
-//     void addFunction(FunctionValue func) {
-//         functions.insert(functions.begin(), func);
-//     }
-
-//     const FunctionValue* getFunctionByName(std::string name, const Token errorTooltipToken) {
-//         for (const FunctionValue& func : this->functions) {
-//             if (func.name == name)
-//                 return &func;
-//         }
-//         throw RunnerException("VariableScope::getFunctionByName error: function {got_literal} was not declarated at {pos}", errorTooltipToken);
-//     }
-// };
 
 class VariableScope {
 public:
