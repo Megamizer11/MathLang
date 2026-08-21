@@ -8,6 +8,7 @@
 #include "Parser.h"
 #include "Runner.h"
 #include "utils.h"
+#include "SymbolicComputation.h"
 
 using std::ifstream;
 using std::stringstream;
@@ -32,5 +33,13 @@ int main() {
     Parser parser = Parser(lexer.tokenList, true);
     Runner runner = Runner(parser.rootNode);
     runner.run();
+
+    auto i1 = symcomp::Integer {4};
+    auto i2 = symcomp::Integer {5};
+    auto i3 = symcomp::Integer {5};
+    auto add = symcomp::Add::get(i1, i2);
+    auto add2 = symcomp::Add::get(add, i2);
+    cout << add2.forcedCalc() << endl;
+    cout << "ok" << endl;
     return 0;
 }

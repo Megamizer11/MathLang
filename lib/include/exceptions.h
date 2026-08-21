@@ -67,7 +67,7 @@ private:
     std::string message;
 public:
     RunnerException(const std::string& msg):
-        std::runtime_error(msg) {}
+        std::runtime_error(msg) {message = msg;}
 
     RunnerException(std::string msg, const Token& token): std::runtime_error("RAW_MSG") {
         std::string tokenPos = std::to_string(token.fLine) + ":" + std::to_string(token.fIndex);
