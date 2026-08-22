@@ -34,12 +34,24 @@ int main() {
     Runner runner = Runner(parser.rootNode);
     runner.run();
 
-    auto i1 = symcomp::Integer {4};
-    auto i2 = symcomp::Integer {5};
-    auto i3 = symcomp::Integer {5};
-    auto add = symcomp::Add::get(i1, i2);
-    auto add2 = symcomp::Add::get(add, i2);
-    cout << add2.forcedCalc() << endl;
+    auto i1 = symcomp::Number {4, 0};
+    auto i2 = symcomp::Number {5, 0};
+    auto i3 = symcomp::Number {5, 0};
+    // auto add = symcomp::Add<decltype(i1), decltype(i2)>::get(i1, i2);
+    // auto add = symcomp::Add<int, int>::get(i1, i2);
+    // auto add2 = symcomp::Add<decltype(add), decltype(i2)>::get(add, i2);
+    auto add = symcomp::Add<>::get(i1, i2);
+    auto add2 = symcomp::Add<>::get(add, i3);
+    auto answer = symcomp::getSafeAnswer(add2);
+    cout << "start" << endl;
+    // symcomp::SymComp result = symcomp::toUnivesal(add2);
+    // cout << symcomp::toNumberValue(add2) << endl;
+    // cout << symcomp::toNumberValue(add2) << endl;
+    NumberValue externalAdd = NumberValue(answer);
+    auto forcedAnswer = externalAdd.inner->forcedCalc();
+    cout << forcedAnswer.mantissa << " " << forcedAnswer.exponent << endl;
+    // cout << answer.mantissa << " " << answer.exponent << endl;
     cout << "ok" << endl;
+    // cout << sizeof(symcomp::Base) << endl;
     return 0;
 }

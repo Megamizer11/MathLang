@@ -12,6 +12,7 @@
 #include "mpark/variant.hpp"
 #include "exceptions.h"
 #include "utils.h"
+#include "SymbolicComputation.h"
 
 #define PRINT_PRECISION 8
 
@@ -30,12 +31,31 @@
     };}
 
 
+// template<typename T>
 struct NumberValue {
     // Обычное число получается так: mantissa * 10^exponent
     long long mantissa;  // Для числа 12.345 это 12345, для 12000 это 12, мантисса может быть отрицательной, мантисса не может оканчиваться на ноль (исключение - мантисса равна нулю)
     long exponent;       // Для числа 12.345 это -3, для 12000 это 3, экспонента может быть отрицательной
 
-    // using mantExp = std::pair<long long, long>;
+    // symcomp::Base inner;
+    std::shared_ptr<symcomp::Base> inner;
+
+    // NumberValue(const symcomp::Number tree) {  // По факту внутренний API для символьного вычисления
+    //     inner = std::make_shared<symcomp::SymComp<symcomp::Number>>(tree);
+    // };
+
+    NumberValue(const symcomp::NumberWrapper& tree) {  // По факту внутренний API для символьного вычисления
+        inner = std::make_shared<symcomp::NumberWrapper>(tree);
+    };
+
+    template<typename T1, typename T2>
+    NumberValue(const symcomp::Add<T1, T2>& tree) {  // По факту внутренний API для символьного вычисления
+        inner = std::make_shared<symcomp::Add<T1, T2>>(tree);
+    };
+
+    NumberValue(long long mantissa, long exponent) : mantissa(mantissa), exponent(exponent) {  // Базовый конструктор
+
+    };
 
     bool isInt() {
         return exponent >= 0;
@@ -53,6 +73,10 @@ struct NumberValue {
         long exp = 10;  // Халтурный способ захардкодить экспоненту
         long long mantissa = std::round(num * pow(10, exp));
         RETURN_NUMBERVALUE(mantissa, -exp)
+    }
+
+    symcomp::Number asNumber() const {
+        return symcomp::Number {this->mantissa, this->exponent};
     }
 
     // Понижает точность мантиссы, что предотвращает переполнение стэка (pi: NumberValue{31415926535, -10} -> NumberValue{314, -2})
@@ -101,13 +125,18 @@ struct NumberValue {
     }
 
     NumberValue operator+(const NumberValue& rightNumberValue) {
-        // Выражение 18*10^5 + 255*10^2 можно записать в виде: (18*10^(5-2) + 255*10^(2-2))*10^2 или: (18*10^3 + 255)*10^2 где 18*10^3 и 255 это и есть term1 и term2
-        long minExp = std::min(this->exponent, rightNumberValue.exponent);
-        long long term1 = std::round(this->mantissa * pow(10, (this->exponent - minExp)));  // без round иногда может возвращаться не 1100 (ожидаемое), а 1099
-        long long term2 = std::round(rightNumberValue.mantissa * pow(10, (rightNumberValue.exponent - minExp)));
-        long long rawMantissa = term1 + term2;  // В выражении 36 + 84 может получиться мантисса, равная 120 (хотя мантисса должна быть 12, а экспонента 1)
-        long exp = minExp;
-        RETURN_NUMBERVALUE(rawMantissa, exp)
+        // // Выражение 18*10^5 + 255*10^2 можно записать в виде: (18*10^(5-2) + 255*10^(2-2))*10^2 или: (18*10^3 + 255)*10^2 где 18*10^3 и 255 это и есть term1 и term2
+        // long minExp = std::min(this->exponent, rightNumberValue.exponent);
+        // long long term1 = std::round(this->mantissa * pow(10, (this->exponent - minExp)));  // без round иногда может возвращаться не 1100 (ожидаемое), а 1099
+        // long long term2 = std::round(rightNumberValue.mantissa * pow(10, (rightNumberValue.exponent - minExp)));
+        // long long rawMantissa = term1 + term2;  // В выражении 36 + 84 может получиться мантисса, равная 120 (хотя мантисса должна быть 12, а экспонента 1)
+        // long exp = minExp;
+        // RETURN_NUMBERVALUE(rawMantissa, exp)
+
+        // symcomp::Number thisNumber = this->asNumber();
+        // symcomp::Number rightNumber = rightNumberValue.asNumber();
+        auto result = symcomp::Add<>::get(*this->inner, *rightNumberValue.inner);
+        this->inner = std::make_shared<symcomp::Base>(result);
     }
 
     NumberValue operator-(const NumberValue& rightNumberValue) {

@@ -147,7 +147,7 @@ Value SideEffectFuncNode::runNode(VariableScope& varScope) {
         NumberValue arg = asNumberValue(this->args[0]->runNode(varScope));
         return arg.getNaturalLogged();
     }
-    return NumberValue {0};
+    return NumberValue {0, 0};
 }
 
 Value FunctionStatementNode::runNode(VariableScope& varScope) {
@@ -157,7 +157,7 @@ Value FunctionStatementNode::runNode(VariableScope& varScope) {
         argPtrs.push_back(arg.get());
     FunctionValue funcVal = FunctionValue {funcName, this->body.get(), argPtrs};
     varScope.addFunction(funcVal);
-    return NumberValue {0};
+    return NumberValue {0, 0};
 }
 
 Value FunctionCallNode::runNode(VariableScope& varScope) {
@@ -189,7 +189,7 @@ Value RootNode::runNode(VariableScope& varScope) {
         if (instr == instructions.back())
             cout << std::setprecision(20) << result << endl;
     }
-    return NumberValue {0};
+    return NumberValue {0, 0};
 }
 
 VariableScope Runner::run() {
