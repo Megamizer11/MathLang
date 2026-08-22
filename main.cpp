@@ -46,11 +46,14 @@ int main() {
     // cout << forcedAnswer.mantissa << " " << forcedAnswer.exponent << endl;
     // cout << "ok" << endl;
 
-    NumberValue num1 = NumberValue(symcomp::NumberWrapper {4, 0});
-    NumberValue num2 = NumberValue(symcomp::NumberWrapper {5, 0});
+    // NumberValue num1 = NumberValue(symcomp::NumberWrapper {4, 0});
+    // NumberValue num2 = NumberValue(symcomp::NumberWrapper {5, 0});
+    NumberValue num1 = NumberValue(symcomp::Log(symcomp::Number {5, 0}));
+    NumberValue num2 = NumberValue(symcomp::Log(symcomp::Number {2}));
+    // NumberValue num3 = NumberValue(symcomp::NumberWrapper {9, 0});
     NumberValue answer = num1 + num2;
     auto forcedAnswer = answer.inner->forcedCalc();
-    cout << forcedAnswer.mantissa << " " << forcedAnswer.exponent << endl;
+    cout << "SUM OF LOGS: LOG(5) + LOG(2) = " << forcedAnswer.mantissa << " " << forcedAnswer.exponent << endl;
     cout << "ok" << endl;
     return 0;
 }

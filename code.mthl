@@ -1,3 +1,4 @@
 e = 2.718281828459045
 #COM fct(n) = e ^ (#SUM k=1, n, #LN k)
 #COM fct(5)  #COM 120
+#PRINT 2 + 3
