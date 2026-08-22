@@ -44,14 +44,31 @@ struct NumberValue {
     //     inner = std::make_shared<symcomp::SymComp<symcomp::Number>>(tree);
     // };
 
+    // NumberValue(const symcomp::NumberWrapper& tree) {  // По факту внутренний API для символьного вычисления
+    //     // inner = std::make_shared<symcomp::NumberWrapper>(tree);
+    //     inner = std::make_shared<symcomp::Box<symcomp::NumberWrapper>>(tree);
+    // };
+
     NumberValue(const symcomp::NumberWrapper& tree) {  // По факту внутренний API для символьного вычисления
+        // inner = std::make_shared<symcomp::NumberWrapper>(tree);
         inner = std::make_shared<symcomp::NumberWrapper>(tree);
     };
 
-    template<typename T1, typename T2>
-    NumberValue(const symcomp::Add<T1, T2>& tree) {  // По факту внутренний API для символьного вычисления
-        inner = std::make_shared<symcomp::Add<T1, T2>>(tree);
+    // template<typename T1, typename T2>
+    // NumberValue(const symcomp::Add<T1, T2>& tree) {  // По факту внутренний API для символьного вычисления
+    //     // inner = std::make_shared<symcomp::Add<T1, T2>>(tree);
+    //     inner = std::make_shared<symcomp::Box<symcomp::Add<T1, T2>>>(tree);
+    // };
+
+    NumberValue(const symcomp::Add& tree) {  // По факту внутренний API для символьного вычисления
+        // inner = std::make_shared<symcomp::Add<T1, T2>>(tree);
+        inner = std::make_shared<symcomp::Add>(tree);
     };
+
+    // NumberValue(const symcomp::Log& tree) {  // По факту внутренний API для символьного вычисления
+    //     // inner = std::make_shared<symcomp::Add<T1, T2>>(tree);
+    //     inner = std::make_shared<symcomp::Log>(tree);
+    // };
 
     NumberValue(long long mantissa, long exponent) : mantissa(mantissa), exponent(exponent) {  // Базовый конструктор
 
@@ -124,19 +141,44 @@ struct NumberValue {
         return NumberValue {newMantissa, newExponent};  // Т.к. мантисса не оканчивается на 0, можно обойтись без макроса RETURN_NUMBERVALUE
     }
 
-    NumberValue operator+(const NumberValue& rightNumberValue) {
-        // // Выражение 18*10^5 + 255*10^2 можно записать в виде: (18*10^(5-2) + 255*10^(2-2))*10^2 или: (18*10^3 + 255)*10^2 где 18*10^3 и 255 это и есть term1 и term2
-        // long minExp = std::min(this->exponent, rightNumberValue.exponent);
-        // long long term1 = std::round(this->mantissa * pow(10, (this->exponent - minExp)));  // без round иногда может возвращаться не 1100 (ожидаемое), а 1099
-        // long long term2 = std::round(rightNumberValue.mantissa * pow(10, (rightNumberValue.exponent - minExp)));
-        // long long rawMantissa = term1 + term2;  // В выражении 36 + 84 может получиться мантисса, равная 120 (хотя мантисса должна быть 12, а экспонента 1)
-        // long exp = minExp;
-        // RETURN_NUMBERVALUE(rawMantissa, exp)
+    // NumberValue operator+(const NumberValue& rightNumberValue) {
+    //     // // Выражение 18*10^5 + 255*10^2 можно записать в виде: (18*10^(5-2) + 255*10^(2-2))*10^2 или: (18*10^3 + 255)*10^2 где 18*10^3 и 255 это и есть term1 и term2
+    //     // long minExp = std::min(this->exponent, rightNumberValue.exponent);
+    //     // long long term1 = std::round(this->mantissa * pow(10, (this->exponent - minExp)));  // без round иногда может возвращаться не 1100 (ожидаемое), а 1099
+    //     // long long term2 = std::round(rightNumberValue.mantissa * pow(10, (rightNumberValue.exponent - minExp)));
+    //     // long long rawMantissa = term1 + term2;  // В выражении 36 + 84 может получиться мантисса, равная 120 (хотя мантисса должна быть 12, а экспонента 1)
+    //     // long exp = minExp;
+    //     // RETURN_NUMBERVALUE(rawMantissa, exp)
 
-        // symcomp::Number thisNumber = this->asNumber();
-        // symcomp::Number rightNumber = rightNumberValue.asNumber();
-        auto result = symcomp::Add<>::get(*this->inner, *rightNumberValue.inner);
-        this->inner = std::make_shared<symcomp::Base>(result);
+    //     // symcomp::Number thisNumber = this->asNumber();
+    //     // symcomp::Number rightNumber = rightNumberValue.asNumber();
+    //     std::cout << "INN " << symcomp::toInnerData(*this->inner).forcedCalc().mantissa << std::endl;
+    //     std::cout << "INN2 " << rightNumberValue.inner->forcedCalc().mantissa << std::endl;
+    //     // auto result = symcomp::Add<>::get(
+    //     //     symcomp::toInnerData(*this->inner),
+    //     //     symcomp::toInnerData(*rightNumberValue.inner)
+    //     // );
+    //     auto result = symcomp::Add<>(
+    //         symcomp::toInnerData(*this->inner),
+    //         symcomp::toInnerData(*rightNumberValue.inner)
+    //     );
+    //     std::cout << "RES " << std::endl;
+    //     std::cout << result.arg1.forcedCalc().mantissa << std::endl;
+    //     std::cout << "RES2 " << std::endl;
+    //     std::cout << result.forcedCalc().mantissa << std::endl;
+    //     // auto result = symcomp::Add<>::get(symcomp::Number {7, 0}, symcomp::Number {9, 0});
+    //     // this->inner = std::make_shared<symcomp::Base>(result);
+    //     return NumberValue(result);
+    // }
+
+    NumberValue operator+(const NumberValue& rightNumberValue) {
+        auto result = symcomp::Add(
+            this->inner,
+            rightNumberValue.inner
+        );
+        // std::cout << result.arg1->forcedCalc().mantissa << std::endl;
+        // std::cout << result.forcedCalc().mantissa << std::endl;
+        return NumberValue(result);
     }
 
     NumberValue operator-(const NumberValue& rightNumberValue) {

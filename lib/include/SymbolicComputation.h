@@ -5,7 +5,6 @@
 #include <memory>
 
 #include "exceptions.h"
-// #include "RunValues.h"
 
 // namespace symcomp
 // {
@@ -16,28 +15,47 @@
 //         PI
 //     };
 
-//     struct Number;
-
-//     class SymComp {
-//         virtual ~SymComp() = default;
-//         virtual Number forcedCalc() const {
-//             throw RunnerException("Symbolic computation error: raw SymComp");
-//         };
-//     };
-
-//     struct Number : SymComp {  // Число в самом чистом виде: рациональное, без периодической дроби
+//     struct Number {  // Число в самом чистом виде: рациональное, без периодической дроби
 //         longlong mantissa;
 //         long exponent;  // base10
 
-//         Number(longlong mantissa, long exponent) : mantissa(mantissa), exponent(exponent) {}
+//         // Number(longlong mantissa, long exponent) : mantissa(mantissa), exponent(exponent) {}
+//     };
 
-//         Number forcedCalc() const override {
-//             return Number(this->mantissa, this->exponent);
+//     // struct NumberWrapper;
+
+//     struct Base {
+//         virtual ~Base() = default;
+//         // Number forcedCalc() const override {}
+//         virtual Number forcedCalc() const {
+//             throw RunnerException("Symbolic computation error: raw Base");
+//         };
+//     };
+
+//     struct NumberWrapper : Base {
+//         Number num;
+
+//         longlong& mantissa = num.mantissa;
+//         long& exponent = num.exponent;
+
+//         NumberWrapper(longlong mantissa, long exponent) {
+//             num.mantissa = mantissa;
+//             num.exponent = exponent;
+//         }
+
+//         NumberWrapper(Number num) {
+//             this->num = num;
+//         }
+
+//         Number forcedCalc() const {
+//             return Number {num.mantissa, num.exponent};
+//             // return *this;
+//             // return NumberWrapper(num.mantissa, num.exponent);
 //         };
 //     };
 
 //     // Убирает нули у мантиссы: Number {1500, 3} -> Number {15, 5}
-//     Number getNormalized(const Number& number) {
+//     inline Number getNormalized(const Number& number) {
 //         if (number.mantissa == 0) return Number {0, 0};
 //         long long resultMantissa = number.mantissa;
 //         long resultExp = number.exponent;
@@ -48,31 +66,18 @@
 //         return Number {resultMantissa, resultExp};
 //     }
 
-//     struct Base : SymComp {
-//         // virtual ~Base() = default;
-//         Number forcedCalc() const override {
-
-//         }
-//         // Base() {};
-//     };
-
-//     // template<typename T>
-//     // struct Holder {
-//     //     T held;
-//     // };
-
 //     // Шаблон по умолчанию нужен для удобного использования статичных функций: symcomp::Add<>::get(add, i2);
-//     template<typename T1 = SymComp, typename T2 = SymComp>
+//     // Данные для шаблона по умолчанию НЕ используются
+//     template<typename T1 = Base, typename T2 = Base>
 //     struct Add : Base {
 //         // Base arg1;  // Если сделать такой тип, то произойдёт срезка объекта (object slicing), так как Base весит всего 4 байта
 //         T1 arg1;
 //         T2 arg2;
 
-//         Add(SymComp val1, SymComp val2) : arg1(val1), arg2(val2) {}
+//         Add(Base val1, Base val2) : arg1(val1), arg2(val2) {}
 
 //         template<typename TT1, typename TT2>
 //         static Add get(const TT1& left, const TT2& right) {
-//             // return Add {left, right};
 //             return Add(left, right);
 //         }
 
@@ -102,40 +107,44 @@
 //     struct Root : Base {};
     
 //     struct Exponent : Base {};
+    
+//     template<typename T>
+//     struct Box : Base {
+//         T value;
 
-//     // NumberValue toNumberValue(Base expr) {
-//     //     Number solvedExpr = getNormalized(expr.forcedCalc());
-//     //     return NumberValue {solvedExpr.mantissa, solvedExpr.exponent};
+//         Number forcedCalc() const {
+//             return value.forcedCalc();
+//         }
+
+//         // Box(T value) : value(std::move(value)) {}
+
+//         Box(const T& value) : value(std::move(value)) {}
+//     };
+
+//     inline Base getSafeAnswer(const Base& expr) {
+//         return expr;
+//     }
+
+//     inline NumberWrapper getSafeAnswer(const Number& num) {
+//         return NumberWrapper {num};
+//     }
+
+//     // template<typename T1, typename T2>
+//     // inline Add<T1, T2> toInnerData(const Add<T1, T2>& expr) {
+//     //     return expr;
 //     // }
 
-//     // NumberValue toNumberValue(Number primary) {
-//     //     Number solvedExpr = primary;
-//     //     return NumberValue {solvedExpr.mantissa, solvedExpr.exponent};
+//     // inline Add<Base, Base> toInnerData(const Add<Base, Base>* expr) {
+//     //     return expr;
 //     // }
 
-//     // template<typename T>
-//     // class SymComp {
-//     // public:
-//     //     T held;
-//     // };
+//     inline Base& toInnerData(Base& expr) {
+//         return expr;
+//     }
 
-//     // template<typename T>
-//     // SymComp<Base> toUnivesal(Base expr) {
-//     //     SymComp<Base> universal {expr};
-//     //     return universal;
-//     // }
-
-//     // SymComp<Number> toUnivesal(Number primary) {
-//     //     SymComp<Number> universal {primary};
-//     //     return universal;
-//     // }
-
-//     // class SymbolicComputation {
-//     // public:
-//     //     SymbolicComputation() {
-
-//     //     }
-//     // };
+//     inline Number toInnerData(const NumberWrapper& num) {
+//         return Number {num.mantissa, num.exponent};
+//     }
 // }
 
 namespace symcomp
@@ -198,19 +207,23 @@ namespace symcomp
         return Number {resultMantissa, resultExp};
     }
 
-    // Шаблон по умолчанию нужен для удобного использования статичных функций: symcomp::Add<>::get(add, i2);
-    // Данные для шаблона по умолчанию НЕ используются
-    template<typename T1 = Base, typename T2 = Base>
     struct Add : Base {
         // Base arg1;  // Если сделать такой тип, то произойдёт срезка объекта (object slicing), так как Base весит всего 4 байта
-        T1 arg1;
-        T2 arg2;
+        std::shared_ptr<Base> arg1;
+        std::shared_ptr<Base> arg2;
 
-        Add(Base val1, Base val2) : arg1(val1), arg2(val2) {}
+        Add(Base val1, Base val2) {
+            arg1 = std::make_shared<Base>(val1);
+            arg2 = std::make_shared<Base>(val2);
+        }
+
+        Add(std::shared_ptr<Base> val1, std::shared_ptr<Base> val2) {
+            arg1 = val1;
+            arg2 = val2;
+        }
 
         template<typename TT1, typename TT2>
         static Add get(const TT1& left, const TT2& right) {
-            // return Add {left, right};
             return Add(left, right);
         }
 
@@ -226,8 +239,7 @@ namespace symcomp
         }
 
         Number forcedCalc() const override {
-            // return get(NumberWrapper(arg1.forcedCalc()), NumberWrapper(arg2.forcedCalc())).forcedCalc();
-            return get(arg1.forcedCalc(), arg2.forcedCalc());
+            return get(arg1->forcedCalc(), arg2->forcedCalc());
         }
     };
 
@@ -236,7 +248,39 @@ namespace symcomp
         Base arg2;
     };
 
-    struct Log : Base {};
+    struct Log : Base {
+        // std::shared_ptr<Base> arg;
+
+        // Log(Number val) {
+        //     arg = std::make_shared<Number>(val);
+        // }
+
+        // Log(Base val) {
+        //     arg = std::make_shared<Base>(val);
+        // }
+
+        // Log(std::shared_ptr<Base> val) {
+        //     arg = val;
+        // }
+
+        // template<typename TT1>
+        // static Log get(const TT1& arg) {
+        //     return Log(arg);
+        // }
+
+        // static Log get(const Number& arg) {
+        //     return Log(arg);
+        // }
+
+        // static Number getAsNumber(const Number& arg) {  // Пока что не вычисляет логарифм
+        //     Number number = getNormalized(Number {arg.mantissa+1, arg.exponent});
+        //     return number;
+        // }
+
+        // Number forcedCalc() const override {
+        //     return getAsNumber(arg->forcedCalc());
+        // }
+    };
 
     struct Root : Base {};
     
@@ -246,41 +290,24 @@ namespace symcomp
         return expr;
     }
 
-    inline NumberWrapper getSafeAnswer(const Number num) {
+    inline NumberWrapper getSafeAnswer(const Number& num) {
         return NumberWrapper {num};
     }
 
-    // NumberValue toNumberValue(Base expr) {
-    //     Number solvedExpr = getNormalized(expr.forcedCalc());
-    //     return NumberValue {solvedExpr.mantissa, solvedExpr.exponent};
+    // template<typename T1, typename T2>
+    // inline Add<T1, T2> toInnerData(const Add<T1, T2>& expr) {
+    //     return expr;
     // }
 
-    // NumberValue toNumberValue(Number primary) {
-    //     Number solvedExpr = primary;
-    //     return NumberValue {solvedExpr.mantissa, solvedExpr.exponent};
+    // inline Add<Base, Base> toInnerData(const Add<Base, Base>* expr) {
+    //     return expr;
     // }
 
-    // template<typename T>
-    // class SymComp {
-    // public:
-    //     T held;
-    // };
+    inline Base& toInnerData(Base& expr) {
+        return expr;
+    }
 
-    // template<typename T>
-    // SymComp<Base> toUnivesal(Base expr) {
-    //     SymComp<Base> universal {expr};
-    //     return universal;
-    // }
-
-    // SymComp<Number> toUnivesal(Number primary) {
-    //     SymComp<Number> universal {primary};
-    //     return universal;
-    // }
-
-    // class SymbolicComputation {
-    // public:
-    //     SymbolicComputation() {
-
-    //     }
-    // };
+    inline Number toInnerData(const NumberWrapper& num) {
+        return Number {num.mantissa, num.exponent};
+    }
 }
