@@ -68,7 +68,7 @@ namespace symcomp
         return Number {resultMantissa, resultExp};
     }
 
-    // Понижает точность мантиссы, что предотвращает переполнение стэка (pi: NumberValue{31415926535, -10} -> NumberValue{314, -2})
+    // Понижает точность мантиссы, что предотвращает переполнение стэка (pi: Number{31415926535, -10} -> Number{314, -2})
     inline Number getBalanced(const Number& num, long maxMantissaLength, bool rounding = false) {
         bool isNegative = num.mantissa < 0;
         long long newMantissa = num.mantissa;
@@ -91,20 +91,25 @@ namespace symcomp
         return Number {newMantissa, newExponent};
     }
 
+    // Равносильно 1/num (Number{5, 1} => Number{2, -2})
+    inline Number getInversed(const Number& num) {
+        // В отличие от выражения num1/num2, нам не нужно заботиться о точности при делении мантиссы num1 на num2, достаточно выставить максимальное округлённое значение для long long (это 10^18)
+        long long inversedMantissa = pow(10, 18) / num.mantissa;
+        long inversedExponent = -18 - num.exponent;
+        Number result = getNormalized(Number {inversedMantissa, inversedExponent});
+        return result;
+    }
+
     struct Add : Base {
         // Base arg1;  // Если сделать такой тип, то произойдёт срезка объекта (object slicing), так как Base весит всего 4 байта
         std::shared_ptr<Base> arg1;
         std::shared_ptr<Base> arg2;
-        bool subtractionMode = false;  
+        bool subtractionMode;
 
-        // Add(Base val1, Base val2) {
-        //     arg1 = std::make_shared<Base>(val1);
-        //     arg2 = std::make_shared<Base>(val2);
-        // }
-
-        Add(std::shared_ptr<Base> val1, std::shared_ptr<Base> val2) {
+        Add(std::shared_ptr<Base> val1, std::shared_ptr<Base> val2, bool subtractionMode) {
             arg1 = val1;
             arg2 = val2;
+            this->subtractionMode = subtractionMode;
         }
         
         std::shared_ptr<Base> formed();
@@ -114,11 +119,6 @@ namespace symcomp
         }
     
     private:
-        // template<typename TT1, typename TT2>
-        // static Add get(const TT1& left, const TT2& right, bool subtractionMode) {
-        //     return Add(left, right, subtractionMode);
-        // }
-
         static Number get(const Number& left, const Number& right, bool subtractionMode) {
             // Выражение 18*10^5 + 255*10^2 можно записать в виде: (18*10^(5-2) + 255*10^(2-2))*10^2 или: (18*10^3 + 255)*10^2 где 18*10^3 и 255 это и есть term1 и term2
             long minExp = std::min(left.exponent, right.exponent);
@@ -133,39 +133,48 @@ namespace symcomp
         }
     };
 
-    // struct Sub : Add {
-    //     Subtr(std::shared_ptr<Base> val1, std::shared_ptr<Base> val2) : Add(val1, val2) {}
-    // };
-
     struct Mult : Base {
         std::shared_ptr<Base> arg1;
         std::shared_ptr<Base> arg2;
+        bool divisionMode;
 
-        Mult(std::shared_ptr<Base> val1, std::shared_ptr<Base> val2) {
+        Mult(std::shared_ptr<Base> val1, std::shared_ptr<Base> val2, bool divisionMode) {
             arg1 = val1;
             arg2 = val2;
+            this->divisionMode = divisionMode;
         }
         
         std::shared_ptr<Base> formed();
 
         Number forcedCalc() const override {
-            return get(arg1->forcedCalc(), arg2->forcedCalc());
+            return get(arg1->forcedCalc(), arg2->forcedCalc(), divisionMode);
         }
     
     private:
-        template<typename TT1, typename TT2>
-        static Mult get(const TT1& left, const TT2& right) {
-            return Mult(left, right);
-        }
+        // template<typename TT1, typename TT2>
+        // static Mult get(const TT1& left, const TT2& right) {
+        //     return Mult(left, right);
+        // }
 
-        static Number get(const Number& left, const Number& right) {
+        static Number get(const Number& left, const Number& right, bool divisionMode) {
             // С умножением всё проще, чем с делением: выражение 18*10^5 * 255*10^2 можно записать в виде: (18*255)*10^(5+2)
             // Точность long long ~= 9.2*10^18, при умножении чисел, максимальная длина ответа (примерно) складывается из длин умножаемых чисел
             // Тогда, чтобы не было переполнения числа, каждой мантиссе стоит установить максимальную длину, равную 9. При сложении длина финальной мантиссы будет <=18, что не вызовет переполнение числа
-            Number balancedThis = getBalanced(left, 9);
+            Number balancedLeft = getBalanced(left, 9);
             Number balancedRight = getBalanced(right, 9);
-            long long rawMantissa = balancedThis.mantissa * balancedRight.mantissa;
-            long rawExp = balancedThis.exponent + balancedRight.exponent;
+            long long rawMantissa;
+            if (divisionMode) {
+                long double floatDivision = static_cast<double>(balancedLeft.mantissa) / balancedRight.mantissa;
+                if (std::trunc(floatDivision) == floatDivision) {  // Если левое число делится на правое без остатка (48/6)
+                    // В этом случае getInversed применять нельзя, т.к. getInversed(Number{6, 0}) это getInversed(Number{0.1(6), 0}), т.е. бесконечная периодическая дробь, которая не может обеспечить идеальную точность
+                    rawMantissa = balancedLeft.mantissa / balancedRight.mantissa;
+                } else {  // Числа не делятся нацело (2/7), тогда нужно поделить их с максимально возможной (но не идеальной) точностью
+                    balancedRight = getInversed(balancedRight);
+                    rawMantissa = balancedLeft.mantissa * balancedRight.mantissa;
+                }
+            } else
+                rawMantissa = balancedLeft.mantissa * balancedRight.mantissa;
+            long rawExp = balancedLeft.exponent + balancedRight.exponent;
             Number number = getNormalized(Number {rawMantissa, rawExp});
             return number;
         }
@@ -246,26 +255,26 @@ namespace symcomp
         if (Log* leftLog = dynamic_cast<Log*>(arg1.get())) {
             if (Log* rightLog = dynamic_cast<Log*>(arg2.get())) {
                 // auto result = Number {leftLog->arg->forcedCalc().mantissa * rightLog->arg->forcedCalc().mantissa, 0};  // Временно, пока нет Mult
-                auto result = Mult(leftLog->arg, rightLog->arg).formed();
+                auto result = Mult(leftLog->arg, rightLog->arg, false).formed();
                 // std::cout << "MULT " << result->forcedCalc().mantissa << " " << result->forcedCalc().exponent << std::endl;
                 return std::make_shared<Log>(result);
             }
         }
 
-        return std::make_shared<Add>(this->arg1, this->arg2);
+        return std::make_shared<Add>(this->arg1, this->arg2, this->subtractionMode);
     }
 
     inline std::shared_ptr<Base> Mult::formed() {
         if (NumberWrapper* leftNum = dynamic_cast<NumberWrapper*>(arg1.get())) {
             if (NumberWrapper* rightNum = dynamic_cast<NumberWrapper*>(arg2.get())) {
-                auto result = Mult::get(leftNum->num, rightNum->num);
+                auto result = Mult::get(leftNum->num, rightNum->num, this->divisionMode);
                 // std::cout << "MULT " << arg1->forcedCalc().mantissa << " " << arg2->forcedCalc().mantissa << " = " << result.mantissa << std::endl;
                 // std::cout << "MULT " << std::endl;
                 return std::make_shared<NumberWrapper>(result);
             }
         }
 
-        return std::make_shared<Mult>(this->arg1, this->arg2);
+        return std::make_shared<Mult>(this->arg1, this->arg2, this->divisionMode);
     }
 
 
