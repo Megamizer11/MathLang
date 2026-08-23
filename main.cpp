@@ -53,7 +53,8 @@ int main() {
     // NumberValue num3 = NumberValue(symcomp::NumberWrapper {9, 0});
     NumberValue answer = num1 + num2;
     auto forcedAnswer = answer.inner->forcedCalc();
-    cout << "SUM OF LOGS: LOG(5) + LOG(2) = " << forcedAnswer.mantissa << " " << forcedAnswer.exponent << endl;
+    std::string strAnswer = NumberValue::getAsString(forcedAnswer);
+    cout << "SUM OF LOGS: LOG(5) + LOG(2) = " << strAnswer << " (" << forcedAnswer.mantissa << " " << forcedAnswer.exponent << ")" << endl;
     cout << "ok" << endl;
     return 0;
 }

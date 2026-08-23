@@ -38,7 +38,7 @@ struct NumberValue {
     long exponent;       // Для числа 12.345 это -3, для 12000 это 3, экспонента может быть отрицательной
 
     // symcomp::Base inner;
-    std::shared_ptr<symcomp::Base> inner;
+    std::shared_ptr<symcomp::Base> inner = nullptr;
 
     // NumberValue(const symcomp::Number tree) {  // По факту внутренний API для символьного вычисления
     //     inner = std::make_shared<symcomp::SymComp<symcomp::Number>>(tree);
@@ -48,6 +48,11 @@ struct NumberValue {
     //     // inner = std::make_shared<symcomp::NumberWrapper>(tree);
     //     inner = std::make_shared<symcomp::Box<symcomp::NumberWrapper>>(tree);
     // };
+
+    NumberValue(const symcomp::Number& tree) {  // По факту внутренний API для символьного вычисления
+        // inner = std::make_shared<symcomp::NumberWrapper>(tree);
+        inner = std::make_shared<symcomp::NumberWrapper>(tree);
+    };
 
     NumberValue(const symcomp::NumberWrapper& tree) {  // По факту внутренний API для символьного вычисления
         // inner = std::make_shared<symcomp::NumberWrapper>(tree);
@@ -90,6 +95,10 @@ struct NumberValue {
     
     std::string getAsString() const {
         return getLiteralFromMantissaAndExponent(mantissa, exponent);
+    }
+    
+    static std::string getAsString(symcomp::Number num) {
+        return getLiteralFromMantissaAndExponent(num.mantissa, num.exponent);
     }
 
     long double asPrimitive() const {
@@ -156,8 +165,6 @@ struct NumberValue {
             this->inner,
             rightNumberValue.inner
         ).formed();
-        // std::cout << result.arg1->forcedCalc().mantissa << std::endl;
-        // std::cout << result.forcedCalc().mantissa << std::endl;
         return NumberValue(result);
     }
 
@@ -171,15 +178,11 @@ struct NumberValue {
     }
 
     NumberValue operator*(const NumberValue& rightNumberValue) {
-        // С умножением всё проще, чем с делением: выражение 18*10^5 * 255*10^2 можно записать в виде: (18*255)*10^(5+2)
-        // Точность long long ~= 9.2*10^18, при умножении чисел, максимальная длина ответа (примерно) складывается из длин умножаемых чисел
-        // Тогда, чтобы не было переполнения числа, каждой мантиссе стоит установить максимальную длину, равную 9. При сложении длина финальной мантиссы будет <=18, что не вызовет переполнение числа
-        NumberValue balancedThis = this->getBalanced(9);
-        NumberValue balancedRight = rightNumberValue.getBalanced(9);
-        long long rawMantissa = balancedThis.mantissa * balancedRight.mantissa;
-        long exp = balancedThis.exponent + balancedRight.exponent;
-        // std::cout << balancedThis.mantissa << " " << balancedRight.mantissa << std::endl;
-        RETURN_NUMBERVALUE(rawMantissa, exp)
+        auto result = symcomp::Mult(
+            this->inner,
+            rightNumberValue.inner
+        ).formed();
+        return NumberValue(result);
     }
 
     NumberValue operator/(const NumberValue& rightNumberValue) {
@@ -267,7 +270,7 @@ inline std::ostream& operator<<(std::ostream& os, const NumberValue& val) {
     //                 .getNormalized()                     // 2.000 -> 2
     //                 .getAsString();                      // 2 -> "2"
     if (val.inner != 0) {
-        std::cout << val.inner << std::endl;
+        // std::cout << val.inner << std::endl;
         auto answer = val.inner->forcedCalc();
         return os << "NUMVAL " << answer.mantissa << " " << answer.exponent << " | " << val.mantissa << " " << val.exponent;
     }
