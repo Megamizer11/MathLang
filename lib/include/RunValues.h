@@ -51,6 +51,10 @@ struct NumberValue {
         inner = std::make_shared<symcomp::Add>(tree);
     };
 
+    NumberValue(const symcomp::Exponent& tree) {  // По факту внутренний API для символьного вычисления
+        inner = std::make_shared<symcomp::Exponent>(tree);
+    };
+
     NumberValue(const symcomp::Log& tree) {  // По факту внутренний API для символьного вычисления
         inner = std::make_shared<symcomp::Log>(tree);
     };
@@ -170,40 +174,12 @@ struct NumberValue {
         return NumberValue(result);
     }
 
-    // Если использовать для деления алгоритм умножения с балансировкой, то он будет прекрасно работать и без fixedDecimalAccuracy
-    // Пример: 23 / 8 можно представить как 23 * 0.125 или 23*125 * 10^-3, мантиссы прекрсано умножаются и без искуственной попытки определить точность
-    // Хотя саму обратную мантиссу нужно ещё получить через настоящее деление
-    // NumberValue operator/(const NumberValue& rightNumberValue) {
-    //     // Разделить одно число на другое невозможно с бесконечной точностью. Поэтому мы превращаем результат деления в целое число, "раздувая" мантиссу с помощью pow(10, fixedDecimalAccuracy)
-    //     // Выражение 18*10^5 / 255*10^2 можно записать в виде: (18/255)*10^10 * 10^(-10 + 5-2), где (18/255)*10^10 - целое (округлённое) число
-    //     int fixedDecimalAccuracy = 10;
-    //     long long inflatedMantissa = this->mantissa * pow(10, fixedDecimalAccuracy) / rightNumberValue.mantissa;
-    //     long long rawMantissa = inflatedMantissa;
-    //     long exp = -fixedDecimalAccuracy + this->exponent - rightNumberValue.exponent;
-    //     RETURN_NUMBERVALUE(rawMantissa, exp)
-    // }
-
-    // NumberValue raiseToAPowerOf(const NumberValue& rightNumberValue) {
-    //     // (5*10^3)^(4*10^6) = 5^(4*10^6) * 10^(3*4*10^6)
-    //     // Но (3153*10^-3)^(45*10^-1) = 3153^4.5 * 10^(-3*)
-    //     int fixedDecimalAccuracy = 0;
-    //     int accuracyCoeff = std::round(pow(10, fixedDecimalAccuracy));
-    //     double expandedRightMantissa = (rightNumberValue.mantissa * pow(10, rightNumberValue.exponent));
-    //     long long newMantissa = std::round(accuracyCoeff * pow(this->mantissa, expandedRightMantissa));  // Это ужасная строчка.
-    //     // Так как мы возводим мантиссу в степень, то при большой точности мантиссы с легкостью можно получить stack overflow и неправильный результат
-    //     // 1.0001 ^ 4.8 при fixedDecimalAccuracy=0 уже вызывает переполнение стэка
-    //     std::cout << "prim " << expandedRightMantissa << " " << newMantissa << std::endl;
-    //     long newExponent = -fixedDecimalAccuracy + this->exponent * expandedRightMantissa;
-    //     RETURN_NUMBERVALUE(newMantissa, newExponent)
-    //     // return NumberValue {newMantissa, newExponent};
-    // }
-
     NumberValue raiseToAPowerOf(const NumberValue& rightNumberValue) {
-        // Из-за сильных проблем с точностью в предыдущей версии этой функции, она временно переделана
-        long double thisExpanded = this->asPrimitive();
-        long double rightExpanded = rightNumberValue.asPrimitive();
-        long double result = pow(thisExpanded, rightExpanded);
-        return NumberValue::asNumberValue(result);
+        auto result = symcomp::Exponent(
+            this->inner,
+            rightNumberValue.inner
+        ).formed();
+        return NumberValue(result);
     }
 
     NumberValue getRemainder(const NumberValue& rightNumberValue) {  // Получить остаток от деления: 11 % 3 = 2
@@ -231,6 +207,8 @@ struct NumberValue {
     }
 
     bool operator==(const NumberValue& rightNumberValue) const {
+        if (this->mantissa == 0 && rightNumberValue.mantissa == 0)
+            return true;
         return (this->mantissa == rightNumberValue.mantissa) && (this->exponent == rightNumberValue.exponent);
     };
 };

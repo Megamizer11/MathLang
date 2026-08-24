@@ -4,6 +4,7 @@
 
 #include <memory>
 #include <type_traits>
+#include <algorithm>
 #include <iostream>
 
 #include "exceptions.h"
@@ -182,7 +183,89 @@ namespace symcomp
 
     struct Root : Base {};
     
-    struct Exponent : Base {};
+    struct Exponent : Base {
+        std::shared_ptr<Base> arg1;
+        std::shared_ptr<Base> arg2;
+
+        Exponent(std::shared_ptr<Base> val1, std::shared_ptr<Base> val2) {
+            arg1 = val1;
+            arg2 = val2;
+        }
+        
+        std::shared_ptr<Base> formed();
+
+        Number forcedCalc() const override {
+            return get(arg1->forcedCalc(), arg2->forcedCalc());
+        }
+    
+    private:
+        // // Превращает дробное число в целое с сохранением точности (12.34 -> 1234)
+        // static long long makeInt(long double num) {
+        //     std::string numAsStr = std::to_string(num);  // 12.34 -> "12.340000"
+        //     numAsStr.erase(numAsStr.find_last_not_of('0') + 1, std::string::npos);  // "12.340000" -> "12.34"
+        //     if(numAsStr.back() == '.') numAsStr.pop_back();  // Удаляем точку на конце, если она есть
+        //     numAsStr.erase(std::remove(numAsStr.begin(), numAsStr.end(), '.'), numAsStr.end());  // "12.34" -> "1234"
+        //     return std::stoll(numAsStr);  // "1234" -> 1234
+        // }
+
+        // Превращает дробное число в целое с сохранением точности (makeNumber(12.34, 0) -> Number{1234, -2})
+        static Number makeNumber(long double mantissa, long exp) {
+            std::string numAsStr = std::to_string(mantissa);  // 12.34 -> "12.340000"
+            numAsStr.erase(numAsStr.find_last_not_of('0') + 1, std::string::npos);  // "12.340000" -> "12.34"
+            if(numAsStr.back() == '.') numAsStr.pop_back();  // Удаляем точку на конце, если она есть. Она появится, если дать на вход целое число
+            if (numAsStr.find('.') != std::string::npos) {  // Для 12.345 exp уменьшается на 3
+                exp -= (numAsStr.length() - 1) - numAsStr.find('.');
+            }
+            numAsStr.erase(std::remove(numAsStr.begin(), numAsStr.end(), '.'), numAsStr.end());  // "12.34" -> "1234"
+            return Number {std::stoll(numAsStr), exp};  // "1234" -> 1234
+        }
+
+        // // Для выражения long long a = base^exp переполнение произойдёт при exp > ln(MAX) / ln(exp), где MAX - максимальное значение long long, т.е. 2^63-1
+        // static bool willOverflow(const Number& base, const Number& exp) {
+        // }
+
+        // static Number get(const Number& base, const Number& exp) {
+        //     long double expandedExp = exp.mantissa * pow(10, exp.exponent);
+        //     long rawExp = base.exponent * expandedExp;  // Округляет экспоненту, выдавая неверный ответ
+
+        //     long double logedResultMantissa = expandedExp * std::log10(base.mantissa);
+        //     long intLogedResultMantissa = std::trunc(logedResultMantissa);
+        //     double fractionOfLogedResultMantissa = logedResultMantissa - intLogedResultMantissa;
+        //     double floatResultMantissa = pow(10, fractionOfLogedResultMantissa);
+
+        //     long additionalExponent = intLogedResultMantissa;
+        //     long rawFinalExp = rawExp + additionalExponent;
+        //     Number finalNumber = makeNumber(floatResultMantissa, rawFinalExp);
+        //     Number normalizedNum = getNormalized(finalNumber);
+        //     return normalizedNum;
+        // }
+
+        
+
+        // Использует алгоритм вычисления степени через логарифмы
+        // На примере выражения 3^183: Сначала выражение нужно логарифмировать (например по основанию 10): lg(3^183) = 183*lg3 = 87.31389
+        // Т.к. 3^183 = 10^lg(3^183), то 3^183 = 10^87.31389. Далее нужно разделить на целую и дробную часть: 10^87.31389 = 10^(0.31389+87) = 10^0.31389 * 10^87
+        // Считаем первую часть: 10^0.31389 = 2.0567, тогда 3^183 = 10^0.31389 * 10^87 = 2.0567 * 10^87. Это и есть ответ
+        static Number get(const Number& base, const Number& exp) {
+            // На примере выражения: (3*10^7) ^ (25*10^-1) = 4.929503 * 10^18
+            if (base.mantissa == 0)
+                return Number {0, 0};
+            long double expandedExp = exp.mantissa * pow(10, exp.exponent);  // Разворачиваем правую часть: expandedExp = 2.5
+
+            long double baseLoged = (std::log10(base.mantissa) + base.exponent);  // Логарифмируем основание: lg(3*10^7) = lg3 + lg(10^7) = lg3 + 7 = 7.477121
+            long double logedResultMantissa = expandedExp * baseLoged;  // Получаем логарифмированное полное выражение: lg ((3*10^7) ^ (25*10^-1)) = (25*10^-1)*lg(3*10^7) = 2.5*7.477121 = 18.69280314
+            long intLogedResultMantissa = std::trunc(logedResultMantissa);  // Целая часть от 18.69280314 = 18
+            double fractionOfLogedResultMantissa = logedResultMantissa - intLogedResultMantissa;  // Дробь от 18.69280314 = 0.69280314  // От 0 до 1
+            double floatResultMantissa = pow(10, fractionOfLogedResultMantissa);  // 10^0.69280314 = 4.929503  // От 0 до 10
+
+            // long additionalExponent = intLogedResultMantissa;
+            long rawFinalExp = intLogedResultMantissa;  // 18 
+            Number finalNumber = makeNumber(floatResultMantissa, rawFinalExp);  // (4.929503, 18) -> Number {4929503, 12}
+            std::cout << floatResultMantissa << " " << rawFinalExp << " " << finalNumber.mantissa << " " << finalNumber.exponent << std::endl;
+            Number normalizedNum = getNormalized(finalNumber);
+            return normalizedNum;
+        }
+    };
 
     struct Log : Base {
         std::shared_ptr<Base> arg;
@@ -275,6 +358,17 @@ namespace symcomp
         }
 
         return std::make_shared<Mult>(this->arg1, this->arg2, this->divisionMode);
+    }
+
+    inline std::shared_ptr<Base> Exponent::formed() {
+        if (NumberWrapper* leftNum = dynamic_cast<NumberWrapper*>(arg1.get())) {
+            if (NumberWrapper* rightNum = dynamic_cast<NumberWrapper*>(arg2.get())) {
+                auto result = Exponent::get(leftNum->num, rightNum->num);
+                return std::make_shared<NumberWrapper>(result);
+            }
+        }
+
+        return std::make_shared<Exponent>(this->arg1, this->arg2);
     }
 
 
