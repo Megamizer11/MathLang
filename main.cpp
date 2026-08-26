@@ -38,14 +38,13 @@ int main() {
     // NumberValue num2 = NumberValue(symcomp::Log(symcomp::Number {2}));
     // NumberValue num3 = NumberValue(symcomp::NumberWrapper {9, 0});
     // NumberValue answer = num1 + num2;
-    NumberValue answer = NumberValue(symcomp::Exponent(
-        std::make_shared<symcomp::NumberWrapper>(3, 7),
-        std::make_shared<symcomp::NumberWrapper>(25, -1)
-    ));
-    auto forcedAnswer = answer.inner->forcedCalc();
-    std::string strAnswer = NumberValue::getAsString(forcedAnswer);
-    // cout << "SUM OF LOGS: LOG(5) + LOG(2) = " << strAnswer << " (" << forcedAnswer.mantissa << " " << forcedAnswer.exponent << ")" << endl;
-    cout << "50^0.2 = " << strAnswer << " (" << forcedAnswer.mantissa << " " << forcedAnswer.exponent << ")" << endl;
-    cout << "ok" << endl;
+    // NumberValue answer = NumberValue(symcomp::Exponent(
+    //     std::make_shared<symcomp::NumberWrapper>(3, 7),
+    //     std::make_shared<symcomp::NumberWrapper>(25, -1)
+    // ));
+    // auto forcedAnswer = answer.inner->forcedCalc();
+    // std::string strAnswer = NumberValue::getAsString(forcedAnswer);
+    // // cout << "SUM OF LOGS: LOG(5) + LOG(2) = " << strAnswer << " (" << forcedAnswer.mantissa << " " << forcedAnswer.exponent << ")" << endl;
+    // cout << "50^0.2 = " << strAnswer << " (" << forcedAnswer.mantissa << " " << forcedAnswer.exponent << ")" << endl;
     return 0;
 }

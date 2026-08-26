@@ -71,71 +71,65 @@ struct NumberValue {
         return exponent >= 0;
     }
     
-    std::string getAsString() const {
-        return getLiteralFromMantissaAndExponent(mantissa, exponent);
-    }
+    // std::string getAsString() const {
+    //     return getLiteralFromMantissaAndExponent(mantissa, exponent);
+    // }
     
     static std::string getAsString(symcomp::Number num) {
         return getLiteralFromMantissaAndExponent(num.mantissa, num.exponent);
     }
 
     long double asPrimitive() const {
-        return this->mantissa * pow(10, this->exponent);
+        symcomp::Number answer = this->inner->forcedCalc();
+        return answer.mantissa * pow(10, answer.exponent);
     }
 
-    static NumberValue asNumberValue(long double num) {
-        long exp = 10;  // Халтурный способ захардкодить экспоненту
-        long long mantissa = std::round(num * pow(10, exp));
-        RETURN_NUMBERVALUE(mantissa, -exp)
-    }
+    // static NumberValue asNumberValue(long double num) {
+    //     long exp = 10;  // Халтурный способ захардкодить экспоненту
+    //     long long mantissa = std::round(num * pow(10, exp));
+    //     RETURN_NUMBERVALUE(mantissa, -exp)
+    // }
 
-    symcomp::Number asNumber() const {
-        return symcomp::Number {this->mantissa, this->exponent};
-    }
+    // symcomp::Number asNumber() const {
+    //     return symcomp::Number {this->mantissa, this->exponent};
+    // }
 
-    // Понижает точность мантиссы, что предотвращает переполнение стэка (pi: NumberValue{31415926535, -10} -> NumberValue{314, -2})
-    NumberValue getBalanced(long maxMantissaLength, bool rounding = false) const {
-        bool isNegative = this->mantissa < 0;
-        long long newMantissa = this->mantissa;
-        long newExponent = this->exponent;
-        if (isNegative)
-            newMantissa *= -1;
-        long mantissaLen = floor(log10(newMantissa)) + 1;
-        if (mantissaLen <= maxMantissaLength)
-            return *this;  // {23, 10}(4) -> {23, 10}
-        long divFactor = mantissaLen - maxMantissaLength;
-        int lastNumber;
-        for (;divFactor >= 0; divFactor--) {
-            lastNumber = newMantissa % 10;
-            newMantissa = newMantissa / 10;  // Целочисленно делим мантиссу на 10 (31415 -> 3141)
-            if (rounding && lastNumber >= 5)  // Окургление по правилам математики
-                newMantissa++;
-            newExponent++;  // Восстанавливаем порядок с помощью увеличения экспоненты
+    // // Понижает точность мантиссы, что предотвращает переполнение стэка (pi: NumberValue{31415926535, -10} -> NumberValue{314, -2})
+    // NumberValue getBalanced(long maxMantissaLength, bool rounding = false) const {
+    //     bool isNegative = this->mantissa < 0;
+    //     long long newMantissa = this->mantissa;
+    //     long newExponent = this->exponent;
+    //     if (isNegative)
+    //         newMantissa *= -1;
+    //     long mantissaLen = floor(log10(newMantissa)) + 1;
+    //     if (mantissaLen <= maxMantissaLength)
+    //         return *this;  // {23, 10}(4) -> {23, 10}
+    //     long divFactor = mantissaLen - maxMantissaLength;
+    //     int lastNumber;
+    //     for (;divFactor >= 0; divFactor--) {
+    //         lastNumber = newMantissa % 10;
+    //         newMantissa = newMantissa / 10;  // Целочисленно делим мантиссу на 10 (31415 -> 3141)
+    //         if (rounding && lastNumber >= 5)  // Окургление по правилам математики
+    //             newMantissa++;
+    //         newExponent++;  // Восстанавливаем порядок с помощью увеличения экспоненты
 
-        }
-        return NumberValue {newMantissa, newExponent};
-    }
+    //     }
+    //     return NumberValue {newMantissa, newExponent};
+    // }
 
-    NumberValue getNormalized() {
-        if (this->mantissa == 0) return NumberValue {0, 0};
-        long long resultMantissa = this->mantissa;
-        long resultExp = this->exponent;
-        while (resultMantissa % 10 == 0) {
-            resultMantissa = resultMantissa / 10;
-            resultExp++;
-        }
-        return NumberValue {resultMantissa, resultExp};
-    }
+    // NumberValue getNormalized() {
+    //     if (this->mantissa == 0) return NumberValue {0, 0};
+    //     long long resultMantissa = this->mantissa;
+    //     long resultExp = this->exponent;
+    //     while (resultMantissa % 10 == 0) {
+    //         resultMantissa = resultMantissa / 10;
+    //         resultExp++;
+    //     }
+    //     return NumberValue {resultMantissa, resultExp};
+    // }
 
     NumberValue getRounded(bool isDown) {  // isDown=true - округление вниз, isDown=false - округление вверх
-        // Для числа 12.34 (NumberValue {1234, -2}) мы должны целочисленно разделить мантиссу на 100: 1234 / 100 = 12, это и будет мантисса нового числа. Новая экспонента будет равна нулю
-        if (exponent >= 0)  // Гарантированно целое число
-            return *this;  // Копируем текущий объект
-        long long divFactor = std::round(pow(10, -this->exponent));
-        long long newMantissa = this->mantissa / divFactor;  // Мантисса уже нормализована, она гарантированно не оканчивается на 0
-        if (!isDown) newMantissa++;
-        long newExponent = 0;
-        return NumberValue {newMantissa, newExponent};  // Т.к. мантисса не оканчивается на 0, можно обойтись без макроса RETURN_NUMBERVALUE
+        return NumberValue(symcomp::getRounded(this->inner->forcedCalc(), isDown));
     }
 
     NumberValue operator+(const NumberValue& rightNumberValue) {
@@ -189,28 +183,41 @@ struct NumberValue {
         RETURN_NUMBERVALUE(newMantissa, newExponent)
     }
 
-    long double _getNaturalLoggedPrimitive() {
-        // ln(5*10^3) = ln5 + ln(10^3) = ln5 + 3ln10
-        double log10e = log(10);
-        long double lnMantissa = log(this->mantissa);
-        long double lnExp = this->exponent * log10e;
-        long double result = lnMantissa + lnExp;
-        return result;
-    }
+    // long double _getNaturalLoggedPrimitive() {
+    //     // ln(5*10^3) = ln5 + ln(10^3) = ln5 + 3ln10
+    //     double log10e = log(10);
+    //     long double lnMantissa = log(this->mantissa);
+    //     long double lnExp = this->exponent * log10e;
+    //     long double result = lnMantissa + lnExp;
+    //     return result;
+    // }
+
+    // NumberValue getNaturalLogged() {
+    //     long double primitiveNumber = _getNaturalLoggedPrimitive();
+    //     int fixedDecimalAccuracy = 10;
+    //     long long newMantissa = primitiveNumber * pow(10, fixedDecimalAccuracy);
+    //     long newExp = -fixedDecimalAccuracy;
+    //     RETURN_NUMBERVALUE(newMantissa, newExp)
+    // }
 
     NumberValue getNaturalLogged() {
-        long double primitiveNumber = _getNaturalLoggedPrimitive();
-        int fixedDecimalAccuracy = 10;
-        long long newMantissa = primitiveNumber * pow(10, fixedDecimalAccuracy);
-        long newExp = -fixedDecimalAccuracy;
-        RETURN_NUMBERVALUE(newMantissa, newExp)
+        auto result = symcomp::Log(
+            this->inner
+        ).formed();
+        return NumberValue(result);
     }
 
     bool operator==(const NumberValue& rightNumberValue) const {
-        if (this->mantissa == 0 && rightNumberValue.mantissa == 0)
+        symcomp::Number forcedCalcThis = this->inner->forcedCalc();
+        symcomp::Number forcedCalcRight = this->inner->forcedCalc();
+        if (forcedCalcThis.mantissa == 0 && forcedCalcRight.mantissa == 0)
             return true;
-        return (this->mantissa == rightNumberValue.mantissa) && (this->exponent == rightNumberValue.exponent);
+        return (forcedCalcThis.mantissa == forcedCalcRight.mantissa) && (forcedCalcThis.exponent == forcedCalcRight.exponent);
     };
+
+    void printAsSymbolicTree() {
+        this->inner->printTree();
+    }
 };
 
 class ExpressionNode;
@@ -243,7 +250,10 @@ inline std::ostream& operator<<(std::ostream& os, const NumberValue& val) {
     // return os << "NUMVAL2 " << val.mantissa << " " << val.exponent;
     if (val.inner != 0) {
         auto answer = val.inner->forcedCalc();
-        return os << NumberValue::getAsString(answer);
+        std::string strAnswer = NumberValue::getAsString(answer);
+        if (strAnswer.length() > 100000)
+            throw RunnerException("NumberValue operator<< error: too large value for printing");
+        return os << strAnswer;
     }
     throw RunnerException("NumberValue operator<< error: somehow inner (ptr) == 0");
 }
