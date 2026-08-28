@@ -37,46 +37,29 @@ struct NumberValue {
     long long mantissa;  // Для числа 12.345 это 12345, для 12000 это 12, мантисса может быть отрицательной, мантисса не может оканчиваться на ноль (исключение - мантисса равна нулю)
     long exponent;       // Для числа 12.345 это -3, для 12000 это 3, экспонента может быть отрицательной
 
-    // symcomp::Base inner;
-    std::shared_ptr<symcomp::Base> inner;
+    std::shared_ptr<symcomp::Base> inner = nullptr;
 
-    // NumberValue(const symcomp::Number tree) {  // По факту внутренний API для символьного вычисления
-    //     inner = std::make_shared<symcomp::SymComp<symcomp::Number>>(tree);
-    // };
-
-    // NumberValue(const symcomp::NumberWrapper& tree) {  // По факту внутренний API для символьного вычисления
-    //     // inner = std::make_shared<symcomp::NumberWrapper>(tree);
-    //     inner = std::make_shared<symcomp::Box<symcomp::NumberWrapper>>(tree);
-    // };
-
-    NumberValue(const symcomp::NumberWrapper& tree) {  // По факту внутренний API для символьного вычисления
-        // inner = std::make_shared<symcomp::NumberWrapper>(tree);
+    NumberValue(const symcomp::Number& tree) {  // По факту внутренний API для символьного вычисления
         inner = std::make_shared<symcomp::NumberWrapper>(tree);
     };
 
-    // template<typename T1, typename T2>
-    // NumberValue(const symcomp::Add<T1, T2>& tree) {  // По факту внутренний API для символьного вычисления
-    //     // inner = std::make_shared<symcomp::Add<T1, T2>>(tree);
-    //     inner = std::make_shared<symcomp::Box<symcomp::Add<T1, T2>>>(tree);
-    // };
+    NumberValue(const symcomp::NumberWrapper& tree) {  // По факту внутренний API для символьного вычисления
+        inner = std::make_shared<symcomp::NumberWrapper>(tree);
+    };
 
     NumberValue(const symcomp::Add& tree) {  // По факту внутренний API для символьного вычисления
-        // inner = std::make_shared<symcomp::Add<T1, T2>>(tree);
         inner = std::make_shared<symcomp::Add>(tree);
     };
 
-    // NumberValue(int rawNum) {  // По факту внутренний API для символьного вычисления
-    //     // inner = std::make_shared<symcomp::NumberWrapper>(tree);
-    //     inner = std::make_shared<symcomp::NumberWrapper>(rawNum, 0);
-    // };
+    NumberValue(const symcomp::Exponent& tree) {  // По факту внутренний API для символьного вычисления
+        inner = std::make_shared<symcomp::Exponent>(tree);
+    };
 
     NumberValue(const symcomp::Log& tree) {  // По факту внутренний API для символьного вычисления
-        // inner = std::make_shared<symcomp::Add<T1, T2>>(tree);
         inner = std::make_shared<symcomp::Log>(tree);
     };
 
     NumberValue(const std::shared_ptr<symcomp::Base> tree) {  // По факту внутренний API для символьного вычисления
-        // inner = std::make_shared<symcomp::Add<T1, T2>>(tree);
         inner = tree;
     };
 
@@ -88,131 +71,109 @@ struct NumberValue {
         return exponent >= 0;
     }
     
-    std::string getAsString() const {
-        return getLiteralFromMantissaAndExponent(mantissa, exponent);
+    // std::string getAsString() const {
+    //     return getLiteralFromMantissaAndExponent(mantissa, exponent);
+    // }
+    
+    static std::string getAsString(symcomp::Number num) {
+        return getLiteralFromMantissaAndExponent(num.mantissa, num.exponent);
     }
 
     long double asPrimitive() const {
-        return this->mantissa * pow(10, this->exponent);
+        symcomp::Number answer = this->inner->forcedCalc();
+        return answer.mantissa * pow(10, answer.exponent);
     }
 
-    static NumberValue asNumberValue(long double num) {
-        long exp = 10;  // Халтурный способ захардкодить экспоненту
-        long long mantissa = std::round(num * pow(10, exp));
-        RETURN_NUMBERVALUE(mantissa, -exp)
-    }
+    // static NumberValue asNumberValue(long double num) {
+    //     long exp = 10;  // Халтурный способ захардкодить экспоненту
+    //     long long mantissa = std::round(num * pow(10, exp));
+    //     RETURN_NUMBERVALUE(mantissa, -exp)
+    // }
 
-    symcomp::Number asNumber() const {
-        return symcomp::Number {this->mantissa, this->exponent};
-    }
+    // symcomp::Number asNumber() const {
+    //     return symcomp::Number {this->mantissa, this->exponent};
+    // }
 
-    // Понижает точность мантиссы, что предотвращает переполнение стэка (pi: NumberValue{31415926535, -10} -> NumberValue{314, -2})
-    NumberValue getBalanced(long maxMantissaLength, bool rounding = false) const {
-        bool isNegative = this->mantissa < 0;
-        long long newMantissa = this->mantissa;
-        long newExponent = this->exponent;
-        if (isNegative)
-            newMantissa *= -1;
-        long mantissaLen = floor(log10(newMantissa)) + 1;
-        if (mantissaLen <= maxMantissaLength)
-            return *this;  // {23, 10}(4) -> {23, 10}
-        long divFactor = mantissaLen - maxMantissaLength;
-        int lastNumber;
-        for (;divFactor >= 0; divFactor--) {
-            lastNumber = newMantissa % 10;
-            newMantissa = newMantissa / 10;  // Целочисленно делим мантиссу на 10 (31415 -> 3141)
-            if (rounding && lastNumber >= 5)  // Окургление по правилам математики
-                newMantissa++;
-            newExponent++;  // Восстанавливаем порядок с помощью увеличения экспоненты
+    // // Понижает точность мантиссы, что предотвращает переполнение стэка (pi: NumberValue{31415926535, -10} -> NumberValue{314, -2})
+    // NumberValue getBalanced(long maxMantissaLength, bool rounding = false) const {
+    //     bool isNegative = this->mantissa < 0;
+    //     long long newMantissa = this->mantissa;
+    //     long newExponent = this->exponent;
+    //     if (isNegative)
+    //         newMantissa *= -1;
+    //     long mantissaLen = floor(log10(newMantissa)) + 1;
+    //     if (mantissaLen <= maxMantissaLength)
+    //         return *this;  // {23, 10}(4) -> {23, 10}
+    //     long divFactor = mantissaLen - maxMantissaLength;
+    //     int lastNumber;
+    //     for (;divFactor >= 0; divFactor--) {
+    //         lastNumber = newMantissa % 10;
+    //         newMantissa = newMantissa / 10;  // Целочисленно делим мантиссу на 10 (31415 -> 3141)
+    //         if (rounding && lastNumber >= 5)  // Окургление по правилам математики
+    //             newMantissa++;
+    //         newExponent++;  // Восстанавливаем порядок с помощью увеличения экспоненты
 
-        }
-        return NumberValue {newMantissa, newExponent};
-    }
+    //     }
+    //     return NumberValue {newMantissa, newExponent};
+    // }
 
-    NumberValue getNormalized() {
-        if (this->mantissa == 0) return NumberValue {0, 0};
-        long long resultMantissa = this->mantissa;
-        long resultExp = this->exponent;
-        while (resultMantissa % 10 == 0) {
-            resultMantissa = resultMantissa / 10;
-            resultExp++;
-        }
-        return NumberValue {resultMantissa, resultExp};
-    }
+    // NumberValue getNormalized() {
+    //     if (this->mantissa == 0) return NumberValue {0, 0};
+    //     long long resultMantissa = this->mantissa;
+    //     long resultExp = this->exponent;
+    //     while (resultMantissa % 10 == 0) {
+    //         resultMantissa = resultMantissa / 10;
+    //         resultExp++;
+    //     }
+    //     return NumberValue {resultMantissa, resultExp};
+    // }
 
     NumberValue getRounded(bool isDown) {  // isDown=true - округление вниз, isDown=false - округление вверх
-        // Для числа 12.34 (NumberValue {1234, -2}) мы должны целочисленно разделить мантиссу на 100: 1234 / 100 = 12, это и будет мантисса нового числа. Новая экспонента будет равна нулю
-        if (exponent >= 0)  // Гарантированно целое число
-            return *this;  // Копируем текущий объект
-        long long divFactor = std::round(pow(10, -this->exponent));
-        long long newMantissa = this->mantissa / divFactor;  // Мантисса уже нормализована, она гарантированно не оканчивается на 0
-        if (!isDown) newMantissa++;
-        long newExponent = 0;
-        return NumberValue {newMantissa, newExponent};  // Т.к. мантисса не оканчивается на 0, можно обойтись без макроса RETURN_NUMBERVALUE
+        return NumberValue(symcomp::getRounded(this->inner->forcedCalc(), isDown));
     }
 
     NumberValue operator+(const NumberValue& rightNumberValue) {
         auto result = symcomp::Add(
             this->inner,
-            rightNumberValue.inner
+            rightNumberValue.inner,
+            false
         ).formed();
-        // std::cout << result.arg1->forcedCalc().mantissa << std::endl;
-        // std::cout << result.forcedCalc().mantissa << std::endl;
         return NumberValue(result);
     }
 
     NumberValue operator-(const NumberValue& rightNumberValue) {
-        long minExp = std::min(this->exponent, rightNumberValue.exponent);
-        long long term1 = std::round(this->mantissa * pow(10, (this->exponent - minExp)));
-        long long term2 = std::round(rightNumberValue.mantissa * pow(10, (rightNumberValue.exponent - minExp)));
-        long long rawMantissa = term1 - term2;
-        long exp = minExp;
-        RETURN_NUMBERVALUE(rawMantissa, exp)
+        auto result = symcomp::Add(
+            this->inner,
+            rightNumberValue.inner,
+            true
+        ).formed();
+        return NumberValue(result);
     }
 
     NumberValue operator*(const NumberValue& rightNumberValue) {
-        // С умножением всё проще, чем с делением: выражение 18*10^5 * 255*10^2 можно записать в виде: (18*255)*10^(5+2)
-        // Точность long long ~= 9.2*10^18, при умножении чисел, максимальная длина ответа (примерно) складывается из длин умножаемых чисел
-        // Тогда, чтобы не было переполнения числа, каждой мантиссе стоит установить максимальную длину, равную 9. При сложении длина финальной мантиссы будет <=18, что не вызовет переполнение числа
-        NumberValue balancedThis = this->getBalanced(9);
-        NumberValue balancedRight = rightNumberValue.getBalanced(9);
-        long long rawMantissa = balancedThis.mantissa * balancedRight.mantissa;
-        long exp = balancedThis.exponent + balancedRight.exponent;
-        // std::cout << balancedThis.mantissa << " " << balancedRight.mantissa << std::endl;
-        RETURN_NUMBERVALUE(rawMantissa, exp)
+        auto result = symcomp::Mult(
+            this->inner,
+            rightNumberValue.inner,
+            false
+        ).formed();
+        return NumberValue(result);
     }
 
     NumberValue operator/(const NumberValue& rightNumberValue) {
-        // Разделить одно число на другое невозможно с бесконечной точностью. Поэтому мы превращаем результат деления в целое число, "раздувая" мантиссу с помощью pow(10, fixedDecimalAccuracy)
-        // Выражение 18*10^5 / 255*10^2 можно записать в виде: (18/255)*10^10 * 10^(-10 + 5-2), где (18/255)*10^10 - целое (округлённое) число
-        int fixedDecimalAccuracy = 10;
-        long long inflatedMantissa = this->mantissa * pow(10, fixedDecimalAccuracy) / rightNumberValue.mantissa;
-        long long rawMantissa = inflatedMantissa;
-        long exp = -fixedDecimalAccuracy + this->exponent - rightNumberValue.exponent;
-        RETURN_NUMBERVALUE(rawMantissa, exp)
+        auto result = symcomp::Mult(
+            this->inner,
+            rightNumberValue.inner,
+            true
+        ).formed();
+        return NumberValue(result);
     }
 
-    // NumberValue raiseToAPowerOf(const NumberValue& rightNumberValue) {
-    //     // (5*10^3)^(4*10^6) = 5^(4*10^6) * 10^(3*4*10^6)
-    //     // Но (3153*10^-3)^(45*10^-1) = 3153^4.5 * 10^(-3*)
-    //     int fixedDecimalAccuracy = 0;
-    //     int accuracyCoeff = std::round(pow(10, fixedDecimalAccuracy));
-    //     double expandedRightMantissa = (rightNumberValue.mantissa * pow(10, rightNumberValue.exponent));
-    //     long long newMantissa = std::round(accuracyCoeff * pow(this->mantissa, expandedRightMantissa));  // Это ужасная строчка.
-    //     // Так как мы возводим мантиссу в степень, то при большой точности мантиссы с легкостью можно получить stack overflow и неправильный результат
-    //     // 1.0001 ^ 4.8 при fixedDecimalAccuracy=0 уже вызывает переполнение стэка
-    //     std::cout << "prim " << expandedRightMantissa << " " << newMantissa << std::endl;
-    //     long newExponent = -fixedDecimalAccuracy + this->exponent * expandedRightMantissa;
-    //     RETURN_NUMBERVALUE(newMantissa, newExponent)
-    //     // return NumberValue {newMantissa, newExponent};
-    // }
-
     NumberValue raiseToAPowerOf(const NumberValue& rightNumberValue) {
-        // Из-за сильных проблем с точностью в предыдущей версии этой функции, она временно переделана
-        long double thisExpanded = this->asPrimitive();
-        long double rightExpanded = rightNumberValue.asPrimitive();
-        long double result = pow(thisExpanded, rightExpanded);
-        return NumberValue::asNumberValue(result);
+        auto result = symcomp::Exponent(
+            this->inner,
+            rightNumberValue.inner
+        ).formed();
+        return NumberValue(result);
     }
 
     NumberValue getRemainder(const NumberValue& rightNumberValue) {  // Получить остаток от деления: 11 % 3 = 2
@@ -222,26 +183,41 @@ struct NumberValue {
         RETURN_NUMBERVALUE(newMantissa, newExponent)
     }
 
-    long double _getNaturalLoggedPrimitive() {
-        // ln(5*10^3) = ln5 + ln(10^3) = ln5 + 3ln10
-        double log10e = log(10);
-        long double lnMantissa = log(this->mantissa);
-        long double lnExp = this->exponent * log10e;
-        long double result = lnMantissa + lnExp;
-        return result;
-    }
+    // long double _getNaturalLoggedPrimitive() {
+    //     // ln(5*10^3) = ln5 + ln(10^3) = ln5 + 3ln10
+    //     double log10e = log(10);
+    //     long double lnMantissa = log(this->mantissa);
+    //     long double lnExp = this->exponent * log10e;
+    //     long double result = lnMantissa + lnExp;
+    //     return result;
+    // }
+
+    // NumberValue getNaturalLogged() {
+    //     long double primitiveNumber = _getNaturalLoggedPrimitive();
+    //     int fixedDecimalAccuracy = 10;
+    //     long long newMantissa = primitiveNumber * pow(10, fixedDecimalAccuracy);
+    //     long newExp = -fixedDecimalAccuracy;
+    //     RETURN_NUMBERVALUE(newMantissa, newExp)
+    // }
 
     NumberValue getNaturalLogged() {
-        long double primitiveNumber = _getNaturalLoggedPrimitive();
-        int fixedDecimalAccuracy = 10;
-        long long newMantissa = primitiveNumber * pow(10, fixedDecimalAccuracy);
-        long newExp = -fixedDecimalAccuracy;
-        RETURN_NUMBERVALUE(newMantissa, newExp)
+        auto result = symcomp::Log(
+            this->inner
+        ).formed();
+        return NumberValue(result);
     }
 
     bool operator==(const NumberValue& rightNumberValue) const {
-        return (this->mantissa == rightNumberValue.mantissa) && (this->exponent == rightNumberValue.exponent);
+        symcomp::Number forcedCalcThis = this->inner->forcedCalc();
+        symcomp::Number forcedCalcRight = this->inner->forcedCalc();
+        if (forcedCalcThis.mantissa == 0 && forcedCalcRight.mantissa == 0)
+            return true;
+        return (forcedCalcThis.mantissa == forcedCalcRight.mantissa) && (forcedCalcThis.exponent == forcedCalcRight.exponent);
     };
+
+    void printAsSymbolicTree() {
+        this->inner->printTree();
+    }
 };
 
 class ExpressionNode;
@@ -266,12 +242,20 @@ inline std::ostream& operator<<(std::ostream& os, const NumberValue& val) {
     // return os << val.getBalanced(PRINT_PRECISION, true)  // 1.99999982358225 -> 2.000
     //                 .getNormalized()                     // 2.000 -> 2
     //                 .getAsString();                      // 2 -> "2"
+    // if (val.inner != 0) {
+    //     // std::cout << val.inner << std::endl;
+    //     auto answer = val.inner->forcedCalc();
+    //     return os << "NUMVAL = " << NumberValue::getAsString(answer) << " | " << answer.mantissa << " " << answer.exponent << " | " << val.mantissa << " " << val.exponent;
+    // }
+    // return os << "NUMVAL2 " << val.mantissa << " " << val.exponent;
     if (val.inner != 0) {
-        std::cout << val.inner << std::endl;
         auto answer = val.inner->forcedCalc();
-        return os << "NUMVAL " << answer.mantissa << " " << answer.exponent << " | " << val.mantissa << " " << val.exponent;
+        std::string strAnswer = NumberValue::getAsString(answer);
+        if (strAnswer.length() > 100000)
+            throw RunnerException("NumberValue operator<< error: too large value for printing");
+        return os << strAnswer;
     }
-    return os << "NUMVAL2 " << val.mantissa << " " << val.exponent;
+    throw RunnerException("NumberValue operator<< error: somehow inner (ptr) == 0");
 }
 
 inline std::ostream& operator<<(std::ostream& os, const Value& valueType) {
