@@ -247,6 +247,13 @@ unique_ptr<ExpressionNode> Parser::parseStatement() {
         args.push_back(move(arg2));
         return make_unique<SideEffectFuncNode>(*printToken, move(args));
     }
+    if (Token* printToken = match(tokenTypes.SYMBOLIC_TREE())) {
+        unique_ptr<ExpressionNode> arg = parseExpression();
+
+        vector<std::unique_ptr<ExpressionNode>> args = {};
+        args.push_back(move(arg));
+        return make_unique<SideEffectFuncNode>(*printToken, move(args));
+    }
     return parseExpression();  // 1 + 2  // Из-за return move(left); (выше в этой функции) эта строка парсит выражения (как отдельные строки) по типу 1 + d, а просто d парсит return move(left);
 }
 

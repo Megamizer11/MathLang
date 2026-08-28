@@ -71,6 +71,7 @@ Value BinNode::runNode(VariableScope& varScope) {
         Value left = this->left->runNode(varScope);
         Value right = this->right->runNode(varScope);
         if (oper.name == tokenTypes.PLUS().name) {
+            NumberValue v = asNumberValue(left) + asNumberValue(right);
             if (isNumber(left) && isNumber(right)) return asNumberValue(left) + asNumberValue(right);
         
         } else if (oper.name == tokenTypes.MINUS().name) {
@@ -146,6 +147,10 @@ Value SideEffectFuncNode::runNode(VariableScope& varScope) {
     if (this->operToken.type.name == tokenTypes.NATURAL_LOG().name) {
         NumberValue arg = asNumberValue(this->args[0]->runNode(varScope));
         return arg.getNaturalLogged();
+    }
+    if (this->operToken.type.name == tokenTypes.SYMBOLIC_TREE().name) {
+        NumberValue arg = asNumberValue(this->args[0]->runNode(varScope));
+        arg.printAsSymbolicTree();
     }
     return NumberValue {0, 0};
 }

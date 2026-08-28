@@ -34,26 +34,17 @@ int main() {
     Runner runner = Runner(parser.rootNode);
     runner.run();
 
-    // auto i1 = symcomp::Number {4, 0};
-    // auto i2 = symcomp::Number {5, 0};
-    // auto i3 = symcomp::Number {6, 0};
-    // auto add = symcomp::Add<>::get(i1, i2);
-    // auto add2 = symcomp::Add<>::get(add, i3);
-
-    // auto answer = symcomp::getSafeAnswer(add2);
-    // NumberValue externalAnswer = NumberValue(answer);
-    // auto forcedAnswer = externalAnswer.inner->forcedCalc();
-    // cout << forcedAnswer.mantissa << " " << forcedAnswer.exponent << endl;
-    // cout << "ok" << endl;
-
-    // NumberValue num1 = NumberValue(symcomp::NumberWrapper {4, 0});
-    // NumberValue num2 = NumberValue(symcomp::NumberWrapper {5, 0});
-    NumberValue num1 = NumberValue(symcomp::Log(symcomp::Number {5, 0}));
-    NumberValue num2 = NumberValue(symcomp::Log(symcomp::Number {2}));
+    // NumberValue num1 = NumberValue(symcomp::Log(symcomp::Number {5, 0}));
+    // NumberValue num2 = NumberValue(symcomp::Log(symcomp::Number {2}));
     // NumberValue num3 = NumberValue(symcomp::NumberWrapper {9, 0});
-    NumberValue answer = num1 + num2;
-    auto forcedAnswer = answer.inner->forcedCalc();
-    cout << "SUM OF LOGS: LOG(5) + LOG(2) = " << forcedAnswer.mantissa << " " << forcedAnswer.exponent << endl;
-    cout << "ok" << endl;
+    // NumberValue answer = num1 + num2;
+    // NumberValue answer = NumberValue(symcomp::Exponent(
+    //     std::make_shared<symcomp::NumberWrapper>(3, 7),
+    //     std::make_shared<symcomp::NumberWrapper>(25, -1)
+    // ));
+    // auto forcedAnswer = answer.inner->forcedCalc();
+    // std::string strAnswer = NumberValue::getAsString(forcedAnswer);
+    // // cout << "SUM OF LOGS: LOG(5) + LOG(2) = " << strAnswer << " (" << forcedAnswer.mantissa << " " << forcedAnswer.exponent << ")" << endl;
+    // cout << "50^0.2 = " << strAnswer << " (" << forcedAnswer.mantissa << " " << forcedAnswer.exponent << ")" << endl;
     return 0;
 }

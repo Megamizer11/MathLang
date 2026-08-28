@@ -1,4 +1,6 @@
-e = 2.718281828459045
-#COM fct(n) = e ^ (#SUM k=1, n, #LN k)
-#COM fct(5)  #COM 120
-#PRINT 2 + 3
+ln(n) = #LN n
+#SYM_TREE ln(2) + ln(3) + ln(4)
+
+#SYM_TREE 2^4 * 2^6
+a = ln(5^ln(3))
+#SYM_TREE a
