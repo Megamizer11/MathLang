@@ -93,6 +93,8 @@ Value BinNode::runNode(VariableScope& varScope) {
         if (VariableNode* varNode = dynamic_cast<VariableNode*>(leftNode)) { // a = ...
             std::string varName = varNode->varToken.literal;
             Value varValue = this->right->runNode(varScope);
+            if (varScope.isVarInScope(varName))
+                throw RunnerException("VariableScope::getByName error: variable {got_literal} already was declarated, second declaration at: {pos}", varNode->varToken);
             varScope.addVar(Variable {varName, varValue});
             return varValue;
         }
@@ -156,6 +158,8 @@ Value FunctionStatementNode::runNode(VariableScope& varScope) {
     for (const auto& arg : this->args)
         argPtrs.push_back(arg.get());
     FunctionValue funcVal = FunctionValue {funcName, this->body.get(), argPtrs};
+    if (varScope.isFuncInScope(funcName))
+        throw RunnerException("VariableScope::getByName error: variable {got_literal} already was declarated, second declaration at: {pos}", functionName);
     varScope.addFunction(funcVal);
     return NumberValue {0, 0};
 }

@@ -304,6 +304,14 @@ public:
         std::cout << std::string(indent, ' ') << "PRINT VARS END" << std::endl;
     }
 
+    bool isVarInScope(std::string name) {
+        for (const shared_var& var : this->vars) {
+            if (var->name == name)
+                return true;
+        }
+        return false;
+    }
+
     void addVar(Variable var) {
         vars.insert(vars.begin(), std::make_shared<Variable>(var));
     }
@@ -320,6 +328,14 @@ public:
                 return var.get();
         }
         throw RunnerException("VariableScope::getByName error: variable {got_literal} was not declarated at {pos}", errorTooltipToken);
+    }
+
+    bool isFuncInScope(std::string name) {
+        for (const FunctionValue& func : this->functions) {
+            if (func.name == name)
+                return true;
+        }
+        return false;
     }
 
     void addFunction(FunctionValue func) {
