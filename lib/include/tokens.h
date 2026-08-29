@@ -44,7 +44,8 @@ struct TokenTypes {
         TokenType("COMMENT",       LexState::UNIQUE,      "#COM"      ),  // Работает на уровне лексера
         TokenType("SUMMA",         LexState::UNIQUE,      "#SUM"      ),  // Работает на уровне парсера (в качестве выражения) и раннера
         TokenType("NATURAL_LOG",   LexState::UNIQUE,      "#LN"       ),  // Работает на уровне парсера (в качестве выражения) и раннера
-        TokenType("SYMBOLIC_TREE", LexState::UNIQUE,      "#SYM_TREE" )   // Работает на уровне парсера (в качестве выражения) и раннера
+        TokenType("SYMBOLIC_TREE", LexState::UNIQUE,      "#SYM_TREE" ),  // Работает на уровне парсера (в качестве выражения) и раннера
+        TokenType("IF",            LexState::UNIQUE,      "#IF" )
     };
 
     TokenType& IDENTIFIER()    { return data[0];  }
@@ -65,6 +66,7 @@ struct TokenTypes {
     TokenType& SUMMA()         { return data[15]; }
     TokenType& NATURAL_LOG()   { return data[16]; }
     TokenType& SYMBOLIC_TREE() { return data[17]; }
+    TokenType& IF()            { return data[18]; }
 
     std::size_t size() const {
         return data.size();

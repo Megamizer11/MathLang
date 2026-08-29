@@ -133,6 +133,14 @@ namespace symcomp
         return (forcedCalcThis.mantissa == forcedCalcRight.mantissa) && (forcedCalcThis.exponent == forcedCalcRight.exponent);
     };
 
+    inline Number getRemainder(const Number& num1, const Number& num2) {  // Получить остаток от деления: 11 % 3 = 2
+        long long getDiv = num1.mantissa / num2.mantissa;
+        long long newMantissa = num1.mantissa - (num2.mantissa * getDiv);
+        long newExponent = num1.exponent;
+        Number result = getNormalized(Number {newMantissa, newExponent});
+        return result;
+    }
+
     struct Add : Base {
         // Base arg1;  // Если сделать такой тип, то произойдёт срезка объекта (object slicing), так как Base весит всего 4 байта
         std::shared_ptr<Base> arg1;

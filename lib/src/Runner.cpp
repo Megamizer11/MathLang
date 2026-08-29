@@ -71,7 +71,6 @@ Value BinNode::runNode(VariableScope& varScope) {
         Value left = this->left->runNode(varScope);
         Value right = this->right->runNode(varScope);
         if (oper.name == tokenTypes.PLUS().name) {
-            NumberValue v = asNumberValue(left) + asNumberValue(right);
             if (isNumber(left) && isNumber(right)) return asNumberValue(left) + asNumberValue(right);
         
         } else if (oper.name == tokenTypes.MINUS().name) {
@@ -101,6 +100,14 @@ Value BinNode::runNode(VariableScope& varScope) {
         }
     }
     throw RunnerException("BinNode::runNode error: bin operator error at: {pos}", operToken);
+}
+
+Value UnarNode::runNode(VariableScope& varScope) {
+    if (this->operToken.type.name == tokenTypes.MINUS().name) {
+        NumberValue operandValue = asNumberValue(operand->runNode(varScope));
+        return operandValue * NumberValue(-1, 0);
+    }
+    throw RunnerException("UnarNode::runNode error: unar operator error at: {pos}", operToken);
 }
 
 Value SideEffectFuncNode::runNode(VariableScope& varScope) {
@@ -154,6 +161,14 @@ Value SideEffectFuncNode::runNode(VariableScope& varScope) {
         NumberValue arg = asNumberValue(this->args[0]->runNode(varScope));
         arg.printAsSymbolicTree();
     }
+    if (this->operToken.type.name == tokenTypes.IF().name) {  // #IF a, a + 1  - Смысл такой: если a > 0, то a + 1, иначе 0
+        NumberValue condition = asNumberValue(this->args[0]->runNode(varScope));
+        if (condition.isPositive()) {
+            NumberValue trueResult = asNumberValue(this->args[1]->runNode(varScope));  // Благодаря ленивому вычислению, теперб #IF можнт работать с рекурсией
+            return trueResult;
+        }
+        return NumberValue {0, 0};
+    }
     return NumberValue {0, 0};
 }
 
@@ -171,7 +186,7 @@ Value FunctionStatementNode::runNode(VariableScope& varScope) {
 
 Value FunctionCallNode::runNode(VariableScope& varScope) {
     string callFunctionName = this->callInitiator->varToken.literal;
-    const FunctionValue* functionValue = varScope.getFunctionByName(callFunctionName, this->leftParToken);
+    const FunctionValue* functionValue = varScope.getFunctionByName(callFunctionName, this->callInitiator->varToken);
     if (functionValue->args.size() != this->args.size()) {
         throw RunnerException("FunctionCallNode::runNode error: function \"{0}\" must be called with {1} arguments but {2} was given at: {pos}", this->leftParToken,
             callFunctionName, (functionValue->args.size()), (this->args.size()));
@@ -181,7 +196,9 @@ Value FunctionCallNode::runNode(VariableScope& varScope) {
     // На примере: f(x) = x^2; f(5+2)
     for (int i = 0; i < this->args.size(); i++) {
         ExpressionNode* givenArg = this->args[i].get();  // Указатель на ExpressionNode("5+2")
+        cout << "CALL " << callFunctionName << endl;
         Value givenResult = givenArg->runNode(varScope);  // Считаем результат (5+2=7), тогда givenResult это NumberValue(7)
+        // auto DEBUG_RES = asNumberValue(givenResult).inner->forcedCalc().mantissa;
 
         VariableNode* requiredArg = functionValue->args[i];  // Указатель на VariableNode("x")
         string requiredArgName = requiredArg->varToken.literal;  // Получаем имя "x"

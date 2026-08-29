@@ -34,8 +34,8 @@
 // template<typename T>
 struct NumberValue {
     // Обычное число получается так: mantissa * 10^exponent
-    long long mantissa;  // Для числа 12.345 это 12345, для 12000 это 12, мантисса может быть отрицательной, мантисса не может оканчиваться на ноль (исключение - мантисса равна нулю)
-    long exponent;       // Для числа 12.345 это -3, для 12000 это 3, экспонента может быть отрицательной
+    // long long mantissa;  // Для числа 12.345 это 12345, для 12000 это 12, мантисса может быть отрицательной, мантисса не может оканчиваться на ноль (исключение - мантисса равна нулю)
+    // long exponent;       // Для числа 12.345 это -3, для 12000 это 3, экспонента может быть отрицательной
 
     std::shared_ptr<symcomp::Base> inner = nullptr;
 
@@ -63,12 +63,20 @@ struct NumberValue {
         inner = tree;
     };
 
-    NumberValue(long long mantissa, long exponent) : mantissa(mantissa), exponent(exponent) {  // Базовый конструктор
+    // NumberValue(long long mantissa, long exponent) : mantissa(mantissa), exponent(exponent) {  // Базовый конструктор
+    //     inner = std::make_shared<symcomp::NumberWrapper>(mantissa, exponent);
+    // };
+
+    NumberValue(long long mantissa, long exponent) {  // Базовый конструктор
         inner = std::make_shared<symcomp::NumberWrapper>(mantissa, exponent);
     };
 
     bool isInt() {
-        return exponent >= 0;
+        return this->inner->forcedCalc().exponent >= 0;
+    }
+
+    bool isPositive() {
+        return this->inner->forcedCalc().mantissa > 0;
     }
     
     // std::string getAsString() const {
@@ -177,10 +185,10 @@ struct NumberValue {
     }
 
     NumberValue getRemainder(const NumberValue& rightNumberValue) {  // Получить остаток от деления: 11 % 3 = 2
-        long long getDiv = this->mantissa / rightNumberValue.mantissa;
-        long long newMantissa = this->mantissa - (rightNumberValue.mantissa * getDiv);
-        long newExponent = this->exponent;
-        RETURN_NUMBERVALUE(newMantissa, newExponent)
+        return symcomp::getRemainder(
+            this->inner->forcedCalc(),
+            rightNumberValue.inner->forcedCalc()
+        );
     }
 
     // long double _getNaturalLoggedPrimitive() {
@@ -233,10 +241,78 @@ struct FunctionValue {
     };
 };
 
+// struct LazyValue {
+//     // using runNodeFunc = std::function<Value(VariableScope&)>;
+//     using runNodeFunc = std::shared_ptr<std::function<Value(VariableScope&)>>;
+//     runNodeFunc func;
+//     LazyValue(runNodeFunc func) {
+//         this->func = func;
+//     }
+
+//     std::shared_ptr<Value> getValue(VariableScope& varScope) {
+//         return std::make_shared<Value>(func->operator()(varScope));
+//     }
+
+//     // Value getValue(VariableScope& varScope) {
+//     //     return func(varScope);
+//     // }
+// };
+
+// struct LazyValue {
+//     using runNodeFunc = std::function<std::shared_ptr<void>(VariableScope&)>;
+//     runNodeFunc func;
+
+//     LazyValue(runNodeFunc func) {
+//         this->func = func;
+//     }
+
+//     std::shared_ptr<Value> getValue(VariableScope& varScope) {
+//         return std::static_pointer_cast<Value>(func(varScope));
+//     }
+// };
+
+// struct LazyValue {
+//     // using runNodeFunc = std::function<std::shared_ptr<Value>(VariableScope&)>;
+//     using runNodeFunc = std::function<void*(VariableScope&)>;
+//     runNodeFunc func;
+    
+//     LazyValue(runNodeFunc func) {
+//         this->func = func;
+//     }
+
+//     // std::shared_ptr<Value> getValue(VariableScope& varScope) {
+//     //     return std::make_shared<Value>(*func(varScope));
+//     // }
+
+//     std::shared_ptr<Value> getValue(VariableScope& varScope) {
+//         Value* resultPtr = static_cast<Value*>(func(varScope));
+//         return std::make_shared<Value>(resultPtr);
+//     }
+// };
+
+// struct LazyValue;
+
 using Value = mpark::variant<
     NumberValue,
     FunctionValue
 >;
+
+// class VariableScope;
+
+// struct LazyValue {
+//     using runNodeFunc = std::function<std::shared_ptr<void>(VariableScope&)>;
+//     runNodeFunc func;
+
+//     LazyValue(runNodeFunc func) {
+//         this->func = func;
+//     }
+
+//     std::shared_ptr<Value> getValue(VariableScope& varScope);
+// };
+
+// inline std::shared_ptr<Value> LazyValue::getValue(VariableScope& varScope) {
+//     return std::static_pointer_cast<Value>(func(varScope));
+// }
 
 inline std::ostream& operator<<(std::ostream& os, const NumberValue& val) {
     // return os << val.getBalanced(PRINT_PRECISION, true)  // 1.99999982358225 -> 2.000
@@ -271,11 +347,17 @@ struct Variable {
     Value value;
 };
 
+// struct LazyVariable {
+//     std::string name;
+//     Value value;
+// };
+
 class VariableScope {
 public:
     using shared_var = std::shared_ptr<Variable>;
 
     std::vector<shared_var> vars;
+    // std::vector<shared_var> vars;
     std::vector<FunctionValue> functions;
 
     VariableScope() {}

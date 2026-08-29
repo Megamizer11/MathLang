@@ -103,26 +103,21 @@ public:
     Value runNode(VariableScope&) override;
 };
 
-// class SideEffectFuncNode : public ExpressionNode {
-// public:
-//     Token operToken;
-//     // std::vector<std::unique_ptr<ExpressionNode>> args;
-//     std::unique_ptr<ExpressionNode arg;  // Очень халтурный способ
-//     std::unique_ptr<ExpressionNode> arg2;
-//     std::unique_ptr<ExpressionNode> arg3;
+class UnarNode : public ExpressionNode {
+public:
+    Token operToken;
+    std::unique_ptr<ExpressionNode> operand;
 
-//     SideEffectFuncNode() {};
+    UnarNode() {};
 
-//     SideEffectFuncNode(Token operToken, std::unique_ptr<ExpressionNode> arg, std::unique_ptr<ExpressionNode> arg2, std::unique_ptr<ExpressionNode> arg3) {
-//         this->operToken = operToken;
-//         this->arg = std::move(arg);
-//         this->arg2 = std::move(arg2);
-//         this->arg3 = std::move(arg3);
-//     };
-    
-//     void print(int) override;
-//     Value runNode(VariableScope&) override;
-// };
+    UnarNode(Token operToken, std::unique_ptr<ExpressionNode> operand) {
+        this->operToken = operToken;
+        this->operand = move(operand);
+    };
+
+    void print(int) override;
+    Value runNode(VariableScope&) override;
+};
 
 class SideEffectFuncNode : public ExpressionNode {
 public:

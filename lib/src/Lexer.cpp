@@ -59,6 +59,11 @@ void Lexer::read_number() {
     // int c = -1;  // нужен чтобы минус мог быть только первым символом в литерале
     bool isFraction = false;
     bool isExponent = false;  // Вид записи с буквой e: 4.1e3 (=4100)
+
+    auto Not_a_Number = [this]() {
+        throw runtime_error("Lexer: not number at: " + to_string(this->fLine) + string(":") + to_string(this->fIndex));
+    };
+
     for (int i = this->pos; i < code.length(); i++) {
         // c++;
         ch = code[i];
@@ -71,7 +76,7 @@ void Lexer::read_number() {
                 accum += ch;
                 continue;
             }
-            else throw runtime_error("Lexer: not number at: " + to_string(this->fLine) + string(":") + to_string(this->fIndex));
+            Not_a_Number();
         }
         if (ch == 'e' && !isExponent) {
             accum += ch;
@@ -82,6 +87,8 @@ void Lexer::read_number() {
             accum += ch;
         } else break;
     }
+    // if (accum == "-")
+    //     Not_a_Number();
     push_token(tokenTypes.NUMBER(), accum);
 }
 
@@ -152,7 +159,7 @@ void Lexer::lex_analysis() {
             continue;
         }
 
-        if (isdigit(ch) || (canStartNumberWithMinus && ch == '-')) {
+        if (isdigit(ch) || (canStartNumberWithMinus && ch == '-' && isdigit(code[this->pos+1]))) {
             read_number();
         } else if (isalnum(ch) || ch == '_') {
             read_identifier();

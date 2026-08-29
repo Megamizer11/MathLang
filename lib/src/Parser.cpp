@@ -211,6 +211,20 @@ unique_ptr<SideEffectFuncNode> Parser::parseNaturalLog() {
 }
 
 unique_ptr<ExpressionNode> Parser::parseExpression() {
+    if (Token* minusToken = match(tokenTypes.MINUS())) {  // Унарный минус
+        unique_ptr<ExpressionNode> expr = parseExpression();
+        return make_unique<UnarNode>(*minusToken, move(expr));
+    }
+    if (Token* ifToken = match(tokenTypes.IF())) {  // #IF a, a + 1  - Смысл такой: если a > 0, то a + 1, иначе 0
+        unique_ptr<ExpressionNode> condition = parseExpression();
+        require(tokenTypes.COMMA());
+        unique_ptr<ExpressionNode> trueResult = parseExpression();
+
+        vector<std::unique_ptr<ExpressionNode>> args = {};
+        args.push_back(move(condition));
+        args.push_back(move(trueResult));
+        return make_unique<SideEffectFuncNode>(*ifToken, move(args));
+    }
     return parsePlusMinus();
 }
 
