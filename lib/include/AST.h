@@ -5,8 +5,19 @@
 #include <iostream>
 
 #include "tokens.h"
-#include "RunValues.h"  // Зависимости AST от runtime быть не должно, это временное (наверное) решение
+// #include "RunValues.h"  // Зависимости AST от runtime быть не должно, это временное (наверное) решение
 #include "utils.h"
+
+#include "mpark/variant.hpp"
+
+struct NumberValue;
+struct FunctionValue;
+class VariableScope;
+
+using Value = mpark::variant<  // Такое решение тоже не самое хорошее
+    NumberValue,
+    FunctionValue
+>;
 
 class BaseNode {
 public:

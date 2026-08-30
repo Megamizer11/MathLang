@@ -22,9 +22,9 @@ bool isNumber(const Value& val) {
 }
 
 NumberValue asNumberValue(const Value& val) {
-    if (const NumberValue* valDec = mpark::get_if<NumberValue>(&val)) {
+    if (const NumberValue* valNum = mpark::get_if<NumberValue>(&val)) {
         // return NumberValue {valDec->mantissa, valDec->exponent};
-        return *valDec;
+        return *valNum;
     } else {
         throw runtime_error("Runner > asFloatType error (must never happen): this value can\'t be float");
     }
@@ -70,10 +70,13 @@ Value BinNode::runNode(VariableScope& varScope) {
     if (checkOperator(oper.name, {tokenTypes.PLUS(), tokenTypes.MINUS(), tokenTypes.MULT(), tokenTypes.DIVIDE(), tokenTypes.POWER(), tokenTypes.PERCENT()})) {
         Value left = this->left->runNode(varScope);
         Value right = this->right->runNode(varScope);
+        // cout << "LEFT " << left << " RIGHT " << right << " " << oper.name << " " << isNumber(left) << " " << isNumber(right) << endl;
         if (oper.name == tokenTypes.PLUS().name) {
+            // cout << "PLUS " << isNumber(left) << " " << isNumber(right) << endl;
             if (isNumber(left) && isNumber(right)) return asNumberValue(left) + asNumberValue(right);
         
         } else if (oper.name == tokenTypes.MINUS().name) {
+            // cout << "MINUS " << isNumber(left) << " " << isNumber(right) << " = " << asNumberValue(left) - asNumberValue(right) << endl;
             if (isNumber(left) && isNumber(right)) return asNumberValue(left) - asNumberValue(right);
         
         } else if (oper.name == tokenTypes.MULT().name) {
@@ -185,6 +188,11 @@ Value FunctionStatementNode::runNode(VariableScope& varScope) {
 }
 
 Value FunctionCallNode::runNode(VariableScope& varScope) {
+    // if (this == nullptr)
+    //     std::cout << "NULL THIS" << endl;
+    // if (this->callInitiator == nullptr)
+    //     std::cout << "NULL CALL INITIATOR" << endl;
+    // cout << "LIT " << callInitiator->varToken.literal << endl;
     string callFunctionName = this->callInitiator->varToken.literal;
     const FunctionValue* functionValue = varScope.getFunctionByName(callFunctionName, this->callInitiator->varToken);
     if (functionValue->args.size() != this->args.size()) {
@@ -194,17 +202,22 @@ Value FunctionCallNode::runNode(VariableScope& varScope) {
     
     VariableScope localScope = varScope;  // Копирование, после завершения FunctionCallNode::runNode localScope автоматически удалится
     // На примере: f(x) = x^2; f(5+2)
+    int DEBUG_RES;
     for (int i = 0; i < this->args.size(); i++) {
         ExpressionNode* givenArg = this->args[i].get();  // Указатель на ExpressionNode("5+2")
-        cout << "CALL " << callFunctionName << endl;
         Value givenResult = givenArg->runNode(varScope);  // Считаем результат (5+2=7), тогда givenResult это NumberValue(7)
         // auto DEBUG_RES = asNumberValue(givenResult).inner->forcedCalc().mantissa;
+        DEBUG_RES = asNumberValue(givenResult).inner->forcedCalc().mantissa;
 
         VariableNode* requiredArg = functionValue->args[i];  // Указатель на VariableNode("x")
         string requiredArgName = requiredArg->varToken.literal;  // Получаем имя "x"
 
+        // Обнаружен серьезный баг: вместо того, чтобы значение переменной менялось, каждый раз создаётся новая переменная
         localScope.addVar(Variable {requiredArgName, givenResult});  // Склеиваем требуемый параметр и полученное к нему значение (x = 7)
+        // localScope.addVar(LazyVariable {requiredArgName, givenArg, localScope});  // Помогает избежать бесконечной рекурсии между функциями в MathLang, но Не работает из-за бесконечной рекурсии в c++
     }
+    // cout << "LIT2 " << callInitiator->varToken.literal << endl;
+    // localScope.printAllVars();
     Value result = functionValue->body->runNode(localScope);
     return result;
 }

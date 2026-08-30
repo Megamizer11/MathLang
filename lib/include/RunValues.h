@@ -83,7 +83,7 @@ struct NumberValue {
     //     return getLiteralFromMantissaAndExponent(mantissa, exponent);
     // }
     
-    static std::string getAsString(symcomp::Number num) {
+    static std::string getNumberAsString(symcomp::Number num) {
         return getLiteralFromMantissaAndExponent(num.mantissa, num.exponent);
     }
 
@@ -92,52 +92,19 @@ struct NumberValue {
         return answer.mantissa * pow(10, answer.exponent);
     }
 
-    // static NumberValue asNumberValue(long double num) {
-    //     long exp = 10;  // Халтурный способ захардкодить экспоненту
-    //     long long mantissa = std::round(num * pow(10, exp));
-    //     RETURN_NUMBERVALUE(mantissa, -exp)
-    // }
-
-    // symcomp::Number asNumber() const {
-    //     return symcomp::Number {this->mantissa, this->exponent};
-    // }
-
-    // // Понижает точность мантиссы, что предотвращает переполнение стэка (pi: NumberValue{31415926535, -10} -> NumberValue{314, -2})
-    // NumberValue getBalanced(long maxMantissaLength, bool rounding = false) const {
-    //     bool isNegative = this->mantissa < 0;
-    //     long long newMantissa = this->mantissa;
-    //     long newExponent = this->exponent;
-    //     if (isNegative)
-    //         newMantissa *= -1;
-    //     long mantissaLen = floor(log10(newMantissa)) + 1;
-    //     if (mantissaLen <= maxMantissaLength)
-    //         return *this;  // {23, 10}(4) -> {23, 10}
-    //     long divFactor = mantissaLen - maxMantissaLength;
-    //     int lastNumber;
-    //     for (;divFactor >= 0; divFactor--) {
-    //         lastNumber = newMantissa % 10;
-    //         newMantissa = newMantissa / 10;  // Целочисленно делим мантиссу на 10 (31415 -> 3141)
-    //         if (rounding && lastNumber >= 5)  // Окургление по правилам математики
-    //             newMantissa++;
-    //         newExponent++;  // Восстанавливаем порядок с помощью увеличения экспоненты
-
-    //     }
-    //     return NumberValue {newMantissa, newExponent};
-    // }
-
-    // NumberValue getNormalized() {
-    //     if (this->mantissa == 0) return NumberValue {0, 0};
-    //     long long resultMantissa = this->mantissa;
-    //     long resultExp = this->exponent;
-    //     while (resultMantissa % 10 == 0) {
-    //         resultMantissa = resultMantissa / 10;
-    //         resultExp++;
-    //     }
-    //     return NumberValue {resultMantissa, resultExp};
-    // }
-
     NumberValue getRounded(bool isDown) {  // isDown=true - округление вниз, isDown=false - округление вверх
         return NumberValue(symcomp::getRounded(this->inner->forcedCalc(), isDown));
+    }
+
+    std::string getAsString() const {
+        if (this->inner != nullptr) {
+            auto answer = this->inner->forcedCalc();
+            std::string strAnswer = NumberValue::getNumberAsString(answer);
+            if (strAnswer.length() > 100000)
+                throw RunnerException("NumberValue::getAsString() error: too large value for stringify");
+            return strAnswer;
+        }
+        throw RunnerException("NumberValue::getAsString() error: somehow inner (ptr) == 0");
     }
 
     NumberValue operator+(const NumberValue& rightNumberValue) {
@@ -191,23 +158,6 @@ struct NumberValue {
         );
     }
 
-    // long double _getNaturalLoggedPrimitive() {
-    //     // ln(5*10^3) = ln5 + ln(10^3) = ln5 + 3ln10
-    //     double log10e = log(10);
-    //     long double lnMantissa = log(this->mantissa);
-    //     long double lnExp = this->exponent * log10e;
-    //     long double result = lnMantissa + lnExp;
-    //     return result;
-    // }
-
-    // NumberValue getNaturalLogged() {
-    //     long double primitiveNumber = _getNaturalLoggedPrimitive();
-    //     int fixedDecimalAccuracy = 10;
-    //     long long newMantissa = primitiveNumber * pow(10, fixedDecimalAccuracy);
-    //     long newExp = -fixedDecimalAccuracy;
-    //     RETURN_NUMBERVALUE(newMantissa, newExp)
-    // }
-
     NumberValue getNaturalLogged() {
         auto result = symcomp::Log(
             this->inner
@@ -228,9 +178,6 @@ struct NumberValue {
     }
 };
 
-class ExpressionNode;
-class VariableNode;
-
 struct FunctionValue {
     std::string name;
     ExpressionNode* body;
@@ -241,97 +188,25 @@ struct FunctionValue {
     };
 };
 
-// struct LazyValue {
-//     // using runNodeFunc = std::function<Value(VariableScope&)>;
-//     using runNodeFunc = std::shared_ptr<std::function<Value(VariableScope&)>>;
-//     runNodeFunc func;
-//     LazyValue(runNodeFunc func) {
-//         this->func = func;
-//     }
-
-//     std::shared_ptr<Value> getValue(VariableScope& varScope) {
-//         return std::make_shared<Value>(func->operator()(varScope));
-//     }
-
-//     // Value getValue(VariableScope& varScope) {
-//     //     return func(varScope);
-//     // }
-// };
-
-// struct LazyValue {
-//     using runNodeFunc = std::function<std::shared_ptr<void>(VariableScope&)>;
-//     runNodeFunc func;
-
-//     LazyValue(runNodeFunc func) {
-//         this->func = func;
-//     }
-
-//     std::shared_ptr<Value> getValue(VariableScope& varScope) {
-//         return std::static_pointer_cast<Value>(func(varScope));
-//     }
-// };
-
-// struct LazyValue {
-//     // using runNodeFunc = std::function<std::shared_ptr<Value>(VariableScope&)>;
-//     using runNodeFunc = std::function<void*(VariableScope&)>;
-//     runNodeFunc func;
-    
-//     LazyValue(runNodeFunc func) {
-//         this->func = func;
-//     }
-
-//     // std::shared_ptr<Value> getValue(VariableScope& varScope) {
-//     //     return std::make_shared<Value>(*func(varScope));
-//     // }
-
-//     std::shared_ptr<Value> getValue(VariableScope& varScope) {
-//         Value* resultPtr = static_cast<Value*>(func(varScope));
-//         return std::make_shared<Value>(resultPtr);
-//     }
-// };
-
-// struct LazyValue;
-
 using Value = mpark::variant<
     NumberValue,
     FunctionValue
 >;
 
-// class VariableScope;
-
-// struct LazyValue {
-//     using runNodeFunc = std::function<std::shared_ptr<void>(VariableScope&)>;
-//     runNodeFunc func;
-
-//     LazyValue(runNodeFunc func) {
-//         this->func = func;
-//     }
-
-//     std::shared_ptr<Value> getValue(VariableScope& varScope);
-// };
-
-// inline std::shared_ptr<Value> LazyValue::getValue(VariableScope& varScope) {
-//     return std::static_pointer_cast<Value>(func(varScope));
-// }
+inline std::string as_str(const Value& val) {
+    if (const NumberValue* valNum = mpark::get_if<NumberValue>(&val)) {
+        return valNum->getAsString();
+    } else if (const FunctionValue* valFunc = mpark::get_if<FunctionValue>(&val)) {
+        return "FUNC CALL VALUE: " + valFunc->name;
+    }
+}
 
 inline std::ostream& operator<<(std::ostream& os, const NumberValue& val) {
-    // return os << val.getBalanced(PRINT_PRECISION, true)  // 1.99999982358225 -> 2.000
-    //                 .getNormalized()                     // 2.000 -> 2
-    //                 .getAsString();                      // 2 -> "2"
-    // if (val.inner != 0) {
-    //     // std::cout << val.inner << std::endl;
-    //     auto answer = val.inner->forcedCalc();
-    //     return os << "NUMVAL = " << NumberValue::getAsString(answer) << " | " << answer.mantissa << " " << answer.exponent << " | " << val.mantissa << " " << val.exponent;
-    // }
-    // return os << "NUMVAL2 " << val.mantissa << " " << val.exponent;
-    if (val.inner != 0) {
-        auto answer = val.inner->forcedCalc();
-        std::string strAnswer = NumberValue::getAsString(answer);
-        if (strAnswer.length() > 100000)
-            throw RunnerException("NumberValue operator<< error: too large value for printing");
-        return os << strAnswer;
-    }
-    throw RunnerException("NumberValue operator<< error: somehow inner (ptr) == 0");
+    return os << val.getAsString();
+}
+
+inline std::ostream& operator<<(std::ostream& os, const FunctionValue& val) {
+    return os << as_str(val);
 }
 
 inline std::ostream& operator<<(std::ostream& os, const Value& valueType) {
@@ -347,17 +222,24 @@ struct Variable {
     Value value;
 };
 
-// struct LazyVariable {
-//     std::string name;
-//     Value value;
-// };
+class VariableScope;
+
+struct LazyVariable {
+    std::string name;
+    ExpressionNode* lazyValue;
+    VariableScope& varScopeForLazyCalc;
+
+    LazyVariable(std::string name, ExpressionNode* lazyValue, VariableScope& varScopeForLazyCalc)
+        : name(name), lazyValue(lazyValue), varScopeForLazyCalc(varScopeForLazyCalc) {}
+};
 
 class VariableScope {
 public:
     using shared_var = std::shared_ptr<Variable>;
+    using shared_lazy_var = std::shared_ptr<LazyVariable>;
 
     std::vector<shared_var> vars;
-    // std::vector<shared_var> vars;
+    std::vector<shared_lazy_var> lazyVars;  // Не используется из-за бага
     std::vector<FunctionValue> functions;
 
     VariableScope() {}
@@ -367,12 +249,21 @@ public:
         for (const shared_var& var : this->vars) {
             std::cout << std::string(indent + 2, ' ') << "name: " << var->name << ", value: " << var->value << std::endl;
         }
+        std::cout << std::string(indent, ' ') << "LAZY_VARS: " << std::endl;
+        for (const shared_lazy_var& lazyVar : this->lazyVars) {
+            std::cout << std::string(indent + 2, ' ') << "name: " << lazyVar->name << ", value: " << std::endl;
+            lazyVar->lazyValue->print(0);
+        }
         std::cout << std::string(indent, ' ') << "PRINT VARS END" << std::endl;
     }
 
     bool isVarInScope(std::string name) {
         for (const shared_var& var : this->vars) {
             if (var->name == name)
+                return true;
+        }
+        for (const shared_lazy_var& lazyVar : this->lazyVars) {
+            if (lazyVar->name == name)
                 return true;
         }
         return false;
@@ -387,11 +278,31 @@ public:
         vars.insert(vars.begin(), var);  // insert помогает создать иллюзию вложенности
     }
 
+    // void addVar(std::string name, ExpressionNode* lazyValue, VariableScope& varScopeForLazyCalc) {
+    //     // vars.push_back(var);
+    //     LazyVariable lazyVar = LazyVariable {name, lazyValue, varScopeForLazyCalc};
+    //     // lazyVars.insert(vars.begin(), std::make_shared<LazyVariable>(name, lazyValue, varScopeForLazyCalc));
+    //     lazyVars.insert(lazyVars.begin(), std::make_shared<LazyVariable>(lazyVar));
+    // }
+
+    void addVar(LazyVariable lazyVar) {
+        lazyVars.insert(lazyVars.begin(), std::make_shared<LazyVariable>(lazyVar));
+    }
+
     const Variable* getByName(std::string name, const Token errorTooltipToken) {
         for (const shared_var& var : this->vars) {
             if (var->name == name)
                 // return &*var;
                 return var.get();
+        }
+        for (const shared_lazy_var& lazyVar : this->lazyVars) {
+            if (lazyVar->name == name) {
+                std::cout << "NAME " << name << std::endl;
+                Value calculated = lazyVar->lazyValue->runNode(lazyVar->varScopeForLazyCalc);
+                Variable newVar = Variable {lazyVar->name, calculated};
+                addVar(newVar);
+                return vars.front().get();
+            }
         }
         throw RunnerException("VariableScope::getByName error: variable {got_literal} was not declarated at {pos}", errorTooltipToken);
     }

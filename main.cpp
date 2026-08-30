@@ -28,7 +28,20 @@ string readFromFile(std::string name) {
 
 // Код очень сильно загрязнился и в нём, скорее всего, появилось много ошибок. Его нужно будет почистить и сделать код ревью
 int main() {
-    string code = readFromFile("code.mthl");
+    // По хорошему дополнять код нужно в препроцессоре, а ещё лучше в самом конце работы парсера, но что есть, то есть
+    // Из-за того, что текст тупо добавляется перед кодом, это сбивает позицию при выводе ошибки
+    string code = R"(
+ln(n) = (#LN n)
+log(n, base) = ln(n) / ln(base)
+abs(n) = (#IF n, n) + (#IF -n, -n)
+sign(n) = (#IF n, 1) + (#IF -n, -1)
+fullif(cond, gr, ls, zer) = (#IF sign(cond), gr) + (#IF sign(-cond), ls) + (#IF -(sign(cond)^2) + 1, zer)  #COM cond>0 => gr, cond<0 => ls, cond=0 => zer
+
+if0(n, k) = #IF n, k
+if1(n, k) = (#IF n, k-1) + 1
+)";
+    // string code = "";
+    code += readFromFile("code.mthl");
     Lexer lexer = Lexer(code, true);
     Parser parser = Parser(lexer.tokenList, true);
     Runner runner = Runner(parser.rootNode);

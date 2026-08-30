@@ -248,6 +248,10 @@ namespace symcomp
         
         std::shared_ptr<Base> formed();
 
+        bool isPurelyComputable() {  // возвращает true, только если выражение может быть моментально посчитано без потери точности
+            return true;
+        }
+
         Number forcedCalc() const override {
             return get(base->forcedCalc(), exp->forcedCalc());
         }
@@ -268,30 +272,57 @@ namespace symcomp
                 exp -= (numAsStr.length() - 1) - numAsStr.find('.');
             }
             numAsStr.erase(std::remove(numAsStr.begin(), numAsStr.end(), '.'), numAsStr.end());  // "12.34" -> "1234"
+            // std::cout << "STOLL " << numAsStr << " M: " << mantissa << " E: " << exp << std::endl;
             return Number {std::stoll(numAsStr), exp};  // "1234" -> 1234
         }
 
+        // Этот алгоритм неидеален, так как он очень тяжелый и должен применяться только в крайних случаях, а для обычного 2^3 применять логарифмы не лучшая идея
         // Использует алгоритм вычисления степени через логарифмы
         // На примере выражения 3^183: Сначала выражение нужно логарифмировать (например по основанию 10): lg(3^183) = 183*lg3 = 87.31389
         // Т.к. 3^183 = 10^lg(3^183), то 3^183 = 10^87.31389. Далее нужно разделить на целую и дробную часть: 10^87.31389 = 10^(0.31389+87) = 10^0.31389 * 10^87
         // Считаем первую часть: 10^0.31389 = 2.0567, тогда 3^183 = 10^0.31389 * 10^87 = 2.0567 * 10^87. Это и есть ответ
-        static Number get(const Number& base, const Number& exp) {
+        static Number calculationWithLogarithms(const Number& base, const Number& exp) {
             // На примере выражения: (3*10^7) ^ (25*10^-1) = 4.929503 * 10^18
             if (base.mantissa == 0)
                 return Number {0, 0};
+            bool isNegativeBase = base.mantissa < 0;
             long double expandedExp = exp.mantissa * pow(10, exp.exponent);  // Разворачиваем правую часть: expandedExp = 2.5
 
-            long double baseLoged = (std::log10(base.mantissa) + base.exponent);  // Логарифмируем основание: lg(3*10^7) = lg3 + lg(10^7) = lg3 + 7 = 7.477121
+            long long baseMantissa = base.mantissa;
+            if (isNegativeBase) {  // Если основание отрицательное, то алгоритм становится сложнее, так как log10 при вычислении baseLoged использовать просто так нельзя
+                if (std::trunc(expandedExp) == expandedExp) {  // Степень целая, выражение спокойно считается
+                    baseMantissa *= -1;  // Делаем мантиссу положительной, чтобы log10 не вызывал ошибок, в конце сделаем обратное действие
+                } else {
+                    // Учтены не все случаи: (-8)^(1/3) кидает ошибку, хотя это выражение равно 2.
+                    throw RunnerException("Symbolic computations Math error: wrong exponent expression");
+                }
+            }
+
+            long double baseLoged = (std::log10(baseMantissa) + base.exponent);  // Логарифмируем основание: lg(3*10^7) = lg3 + lg(10^7) = lg3 + 7 = 7.477121
             long double logedResultMantissa = expandedExp * baseLoged;  // Получаем логарифмированное полное выражение: lg ((3*10^7) ^ (25*10^-1)) = (25*10^-1)*lg(3*10^7) = 2.5*7.477121 = 18.69280314
             long intLogedResultMantissa = std::trunc(logedResultMantissa);  // Целая часть от 18.69280314 = 18
             double fractionOfLogedResultMantissa = logedResultMantissa - intLogedResultMantissa;  // Дробь от 18.69280314 = 0.69280314  // От 0 до 1
             double floatResultMantissa = pow(10, fractionOfLogedResultMantissa);  // 10^0.69280314 = 4.929503  // От 0 до 10
+            // Вообще это действие немного волшебное, так как fractionOfLogedResultMantissa почти гарантированно дробное, но из-за очень большой точности при возведении 10 в степень fractionOfLogedResultMantissa, результат округляется до нужных значений
 
-            // long additionalExponent = intLogedResultMantissa;
             long rawFinalExp = intLogedResultMantissa;  // 18 
+            // std::cout << baseMantissa << " " << std::log10(baseMantissa) << " " << floatResultMantissa << " " << rawFinalExp << std::endl;
+
+            if (isNegativeBase) {
+                if ((long long)std::trunc(expandedExp) % 2 == 1) {  // Если степень нечетная, обратно меняем положительный знак на отрицательный
+                    floatResultMantissa *= -1;
+                }
+            }
+            // std::cout << baseLoged << " " << logedResultMantissa << " " << fractionOfLogedResultMantissa << " " << floatResultMantissa << " " << rawFinalExp << std::endl;
+
             Number finalNumber = makeNumber(floatResultMantissa, rawFinalExp);  // (4.929503, 18) -> Number {4929503, 12}
             Number normalizedNum = getNormalized(finalNumber);
             return normalizedNum;
+        }
+    
+        static Number get(const Number& base, const Number& exp) {
+            // Это должен быть алгоритм, используемый в крайнем случае
+            return Exponent::calculationWithLogarithms(base, exp);
         }
     };
 
@@ -403,8 +434,10 @@ namespace symcomp
     inline std::shared_ptr<Base> Exponent::formed() {
         if (NumberWrapper* baseNum = dynamic_cast<NumberWrapper*>(base.get())) {
             if (NumberWrapper* expNum = dynamic_cast<NumberWrapper*>(exp.get())) {
-                auto result = Exponent::get(baseNum->num, expNum->num);
-                return std::make_shared<NumberWrapper>(result);
+                if (this->isPurelyComputable()) {
+                    auto result = Exponent::get(baseNum->num, expNum->num);
+                    return std::make_shared<NumberWrapper>(result);
+                }
             }
         }
 
