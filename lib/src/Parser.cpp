@@ -87,13 +87,19 @@ unique_ptr<ExpressionNode> Parser::parsePrimary() {  // аналогично par
     if (checkNext(0, tokenTypes.NATURAL_LOG())) {
         return parseNaturalLog();
     }
+    if (Token *constE_Token = match(tokenTypes.CONST_E())) {
+        return make_unique<NumberNode>(*constE_Token, true);
+    }
+    if (Token *constPI_Token = match(tokenTypes.CONST_PI())) {
+        return make_unique<NumberNode>(*constPI_Token, true);
+    }
     Token *variableToken = match(tokenTypes.IDENTIFIER());
     if (variableToken != 0) {
         return make_unique<VariableNode>(*variableToken);
     }
     Token *numberToken = match(tokenTypes.NUMBER());
     if (numberToken != 0)
-        return make_unique<NumberNode>(*numberToken);
+        return make_unique<NumberNode>(*numberToken, false);
     throw ParserException("Parser::parsePrimary error: primary was expected at: {pos}, got: {got_literal}", tokenList[pos]);
 }
 

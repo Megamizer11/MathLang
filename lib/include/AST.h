@@ -50,12 +50,13 @@ public:
 class NumberNode : public ExpressionNode {
 public:
     Token numberToken;
-    // std::pair<long long, long> _mantAndExp = getMantissaAndExponentFromLiteral(numberToken.literal);
+    bool isConst;
 
     NumberNode() {};
 
-    NumberNode(Token numberToken) {
+    NumberNode(Token numberToken, bool isConst) {
         this->numberToken = numberToken;
+        this->isConst = isConst;
     };
 
     bool isInt() {
@@ -65,20 +66,6 @@ public:
     std::pair<long long, long> getMantissaAndExponent() {
         return getMantissaAndExponentFromLiteral(numberToken.literal);
     }
-
-    // long long getMantissa() {
-    //     if (isInt())
-    //         return std::stoi(numberToken.literal);
-    //     std::string mantissa = numberToken.literal;
-    //     mantissa.erase(numberToken.literal.find("."), 1);
-    //     return std::stoi(mantissa);
-    // }
-
-    // long getExponent() {
-    //     if (isInt())
-    //         return 0;
-    //     return - ((numberToken.literal.length() - 1) - numberToken.literal.find("."));  // Если число дробное, экспонента отрицательна
-    // }
 
     void print(int) override;
     Value runNode(VariableScope&) override;

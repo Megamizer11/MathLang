@@ -15,6 +15,10 @@
 // Все formed функции нужны для попытки упрощения выражения: Add(1, 2).formed() => 3
 // если выражение нельзя упростить, оно не меняется: Log(2).formed() => Log(2)
 
+// get приеняется как конечное упрощение, formed внутри formed как незаконченное упрощение
+
+// make_shared внутри formed можно использовать только в двух случаях: make_shared<NumberWrapper> или в самом конце функции, при неудачном упрощении
+
 namespace symcomp
 {
     using longlong = long long;
@@ -27,11 +31,7 @@ namespace symcomp
     struct Number {  // Число в самом чистом виде: рациональное, без периодической дроби
         longlong mantissa;
         long exponent;  // base10
-
-        // Number(longlong mantissa, long exponent) : mantissa(mantissa), exponent(exponent) {}
     };
-
-    // struct NumberWrapper;
 
     struct Base {
         virtual ~Base() = default;
@@ -61,12 +61,39 @@ namespace symcomp
 
         Number forcedCalc() const {
             return Number {num.mantissa, num.exponent};
-            // return *this;
-            // return NumberWrapper(num.mantissa, num.exponent);
         };
 
         void printTree(int indent = 0) {
             std::cout << std::string(indent*2, ' ') << "NUMBER: " << getLiteralFromMantissaAndExponent(num.mantissa, num.exponent) << std::endl;
+        }
+    };
+    
+    struct ConstWrapper : Base {
+        Const constType;
+
+        ConstWrapper(Const constType) {
+            this->constType = constType;
+        }
+
+        Number forcedCalc() const {
+            switch (constType) {
+                case Const::E:
+                    return Number {2718281828459045, -15};
+                case Const::PI:
+                    return Number {3141592653589793, -15};
+                default:
+                    throw RunnerException("Symbolic computations ConstWrapper error: undefined const \"{0}\"", static_cast<int>(constType));
+            }
+        };
+
+        void printTree(int indent = 0) {
+            std::string name = "NONE";
+            switch (constType) {
+                case Const::E: name = "E";
+                case Const::PI: name = "PI";
+                default: name = "NONE";
+            }
+            std::cout << std::string(indent*2, ' ') << "CONST: " << name << std::endl;
         }
     };
 
@@ -245,7 +272,7 @@ namespace symcomp
         }
     };
 
-    struct Root : Base {};
+    // struct Root : Base {};
     
     struct Exponent : Base {
         std::shared_ptr<Base> base;
@@ -340,9 +367,9 @@ namespace symcomp
     struct Log : Base {
         std::shared_ptr<Base> arg;
 
-        Log(Number val) {  // Т.к. мы не можем точно вычислить любой логарифм (например log(3)), то мы его сохраним в изнчальном виде
-            arg = std::make_shared<NumberWrapper>(val);
-        }
+        // Log(Number val) {  // Т.к. мы не можем точно вычислить любой логарифм (например log(3)), то мы его сохраним в изнчальном виде
+        //     arg = std::make_shared<NumberWrapper>(val);
+        // }
 
         Log(std::shared_ptr<Base> val) {
             arg = val;
@@ -402,8 +429,9 @@ namespace symcomp
         if (Log* leftLog = dynamic_cast<Log*>(arg1.get())) {
             if (Log* rightLog = dynamic_cast<Log*>(arg2.get())) {
                 auto newLogArg = Mult(leftLog->arg, rightLog->arg, false).formed();
-                // auto result = Log(newLogArg);
-                return std::make_shared<Log>(newLogArg);
+                auto result = Log(newLogArg).formed();
+                return result;
+                // return std::make_shared<Log>(newLogArg)->formed();
             }
         }
 
@@ -432,8 +460,8 @@ namespace symcomp
                 if (rightDiv->divisionMode) {
                     auto newDivision = Mult(arg1, rightDiv->arg2, true)  // Мы используем arg1, а не leftNum, так как у Mult нет конструктора Mult(Base, shared_ptr<Base>)
                                                                        .formed();  // Пытаемся упростить новое выражение
-                    auto result = Mult(rightDiv->arg1, newDivision, this->divisionMode);
-                    return std::make_shared<Mult>(result);
+                    auto result = Mult(rightDiv->arg1, newDivision, this->divisionMode).formed();
+                    return result;
                 }
             }
             if (Exponent* rightExp = dynamic_cast<Exponent*>(arg2.get())) {
@@ -457,8 +485,8 @@ namespace symcomp
                     auto result = Exponent(
                         leftExp->base,
                         Add(leftExp->exp, rightExp->exp, false).formed()
-                    );
-                    return std::make_shared<Exponent>(result);
+                    ).formed();
+                    return result;
                 }
             }
         }
@@ -480,15 +508,26 @@ namespace symcomp
     }
 
     inline std::shared_ptr<Base> Log::formed() {
-        // if (NumberWrapper* argNum = dynamic_cast<NumberWrapper*>(arg.get())) {
-        //     auto result = Log::get(argNum->num);
-        //     return std::make_shared<NumberWrapper>(result);
-        // }
+        if (NumberWrapper* argNum = dynamic_cast<NumberWrapper*>(arg.get())) {
+            // ln(1) = 0
+            if (argNum->mantissa == 1 && argNum->exponent == 0) {
+                return std::make_shared<NumberWrapper>(0, 0);
+            }
+            // auto result = Log::get(argNum->num);
+            // return std::make_shared<NumberWrapper>(result);
+        }
+
+        // ln(e) = 1
+        if (ConstWrapper* argConst = dynamic_cast<ConstWrapper*>(arg.get())) {
+            if (argConst->constType == Const::E) {
+                return std::make_shared<NumberWrapper>(1, 0);
+            }
+        }
         
         // Свойство: log(a^b) = b*log(a)
         if (Exponent* argExp = dynamic_cast<Exponent*>(arg.get())) {
-            auto result = Mult(argExp->exp, Log(argExp->base).formed(), false);
-            return std::make_shared<Mult>(result);
+            auto result = Mult(argExp->exp, Log(argExp->base).formed(), false).formed();
+            return result;
         }
 
         return std::make_shared<Log>(this->arg);

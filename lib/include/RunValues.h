@@ -47,6 +47,10 @@ struct NumberValue {
         inner = std::make_shared<symcomp::NumberWrapper>(tree);
     };
 
+    NumberValue(const symcomp::ConstWrapper& tree) {  // По факту внутренний API для символьного вычисления
+        inner = std::make_shared<symcomp::ConstWrapper>(tree);
+    };
+
     NumberValue(const symcomp::Add& tree) {  // По факту внутренний API для символьного вычисления
         inner = std::make_shared<symcomp::Add>(tree);
     };

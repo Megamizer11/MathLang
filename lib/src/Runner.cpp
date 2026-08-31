@@ -47,7 +47,13 @@ Value ExpressionNode::runNode(VariableScope& varScope) {
 }
  
 Value NumberNode::runNode(VariableScope& varScope) {
-    // return NumberValue { this->getMantissa(), this->getExponent() };
+    if (this->isConst) {
+        if (this->numberToken.type.name == tokenTypes.CONST_E().name)
+            return NumberValue {symcomp::ConstWrapper(symcomp::Const::E)};  // По хорошему Runner вообще не должен обращаться к symcomp
+        if (this->numberToken.type.name == tokenTypes.CONST_PI().name)
+            return NumberValue {symcomp::ConstWrapper(symcomp::Const::PI)};
+        throw RunnerException("NumberNode::runNode error: undefined constant \"{0}\" ({1})", this->numberToken.literal, this->numberToken.type.name);
+    }
     std::pair<long long, long> mantAndExp = this->getMantissaAndExponent();
     return NumberValue { mantAndExp.first, mantAndExp.second };
 }

@@ -67,6 +67,20 @@ public:
     }
 
     template<typename... Args>
+    ParserException(std::string msg, const Args&... args) {
+        message = msg;
+        
+        constexpr int argsLen = sizeof...(Args);
+        std::vector<std::string> vecOfArgs = {safe_to_string(args)...};
+        for (int i = 0; i < argsLen; i++) {
+            std::string repl = "{" + std::to_string(i) + "}";
+            std::string arg = vecOfArgs.at(i);
+            if (message.find(repl) != std::string::npos)
+                message.replace(message.find(repl), repl.length(), arg);
+        }
+    }
+
+    template<typename... Args>
     ParserException(std::string msg, const Token& token, const Args&... args) {
         std::string tokenPos = std::to_string(token.fLine) + ":" + std::to_string(token.fIndex);
         message = msg;
@@ -104,6 +118,20 @@ public:
             message.replace(message.find("{pos}"), 5, tokenPos);
         if (message.find("{got_literal}") != std::string::npos)
             message.replace(message.find("{got_literal}"), 13, "\"" + token.literal + "\"");
+    }
+
+    template<typename... Args>
+    RunnerException(std::string msg, const Args&... args): std::runtime_error("RAW_MSG") {
+        message = msg;
+        
+        constexpr int argsLen = sizeof...(Args);
+        std::vector<std::string> vecOfArgs = {safe_to_string(args)...};
+        for (int i = 0; i < argsLen; i++) {
+            std::string repl = "{" + std::to_string(i) + "}";
+            std::string arg = vecOfArgs.at(i);
+            if (message.find(repl) != std::string::npos)
+                message.replace(message.find(repl), repl.length(), arg);
+        }
     }
 
     template<typename... Args>
