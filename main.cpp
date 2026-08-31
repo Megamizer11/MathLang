@@ -30,6 +30,8 @@ string readFromFile(std::string name) {
 RootNode getPrologueRootNode() {
     string prologue =
 R"(
+e = #E
+pi = #PI
 ln(n) = (#LN n)
 log(n, base) = ln(n) / ln(base)
 lg(n, base) = ln(n) / ln(10)

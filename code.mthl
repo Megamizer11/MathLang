@@ -1,6 +1,10 @@
-#PRINT #PI
-e = #E
-false_e = 2.718281828459045
-#PRINT e
-#PRINT ln(false_e)  #COM 0.9999999999
-ln(e)  #COM 1
+#SYM_TREE
+ln(
+    e ^ (
+        e ^ (
+            ln(2)
+            +
+            ln(3)
+        )
+    )
+)

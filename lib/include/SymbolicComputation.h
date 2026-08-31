@@ -89,9 +89,9 @@ namespace symcomp
         void printTree(int indent = 0) {
             std::string name = "NONE";
             switch (constType) {
-                case Const::E: name = "E";
-                case Const::PI: name = "PI";
-                default: name = "NONE";
+                case Const::E: name = "E"; break;
+                case Const::PI: name = "PI"; break;
+                default: name = "NONE"; break;
             }
             std::cout << std::string(indent*2, ' ') << "CONST: " << name << std::endl;
         }
@@ -500,6 +500,15 @@ namespace symcomp
                 if (this->isPurelyComputable()) {
                     auto result = Exponent::get(baseNum->num, expNum->num);
                     return std::make_shared<NumberWrapper>(result);
+                }
+            }
+        }
+
+        // Основное логарифмическое тождество для логарифма с основанием e: e^ln(a) = a
+        if (ConstWrapper* baseConst = dynamic_cast<ConstWrapper*>(base.get())) {
+            if (baseConst->constType == Const::E) {
+                if (Log* expLog = dynamic_cast<Log*>(exp.get())) {
+                    return expLog->arg;
                 }
             }
         }
