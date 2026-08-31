@@ -1,11 +1,13 @@
 #include <string>
 #include <iostream>
 
-#include <Lexer.h>
-#include <tokens.h>
 // #include <cctype>
 #include <algorithm>
 #include <iomanip>
+
+#include "exceptions.h"
+#include "tokens.h"
+#include "Lexer.h"
 
 using std::cout;
 using std::endl;
@@ -61,7 +63,7 @@ void Lexer::read_number() {
     bool isExponent = false;  // Вид записи с буквой e: 4.1e3 (=4100)
 
     auto Not_a_Number = [this]() {
-        throw runtime_error("Lexer: not number at: " + to_string(this->fLine) + string(":") + to_string(this->fIndex));
+        throw LexerException("Lexer: not number at: {0}:{1}" + this->fLine, this->fIndex);
     };
 
     for (int i = this->pos; i < code.length(); i++) {
@@ -128,7 +130,7 @@ void Lexer::read_unique() {  // Может парсить не только од
         }
         if (!wasFound) {
             if (accum.empty())  // Токен не был найден, так как текущий символ не является началом ни одного из типов токенов
-                throw runtime_error("Lexer: undefined token at:" + to_string(this->fLine) + string(":") + to_string(this->fIndex));
+                throw LexerException("Lexer: undefined token at: {0}:{1}", this->fLine, this->fIndex);
             break;  // Строка accum является финальным токеном, текущий символ - начало нового токена
         }
     }

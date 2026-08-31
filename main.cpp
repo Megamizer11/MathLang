@@ -26,38 +26,54 @@ string readFromFile(std::string name) {
     return str;
 }
 
-// Код очень сильно загрязнился и в нём, скорее всего, появилось много ошибок. Его нужно будет почистить и сделать код ревью
-int main() {
-    // По хорошему дополнять код нужно в препроцессоре, а ещё лучше в самом конце работы парсера, но что есть, то есть
-    // Из-за того, что текст тупо добавляется перед кодом, это сбивает позицию при выводе ошибки
-    string code = R"(
+// Пролог - объявление базовых функций (таких как abs, log) в самом начале, чтобы их не приходилось объявлять в самом коде
+RootNode getPrologueRootNode() {
+    string prologue =
+R"(
 ln(n) = (#LN n)
 log(n, base) = ln(n) / ln(base)
+lg(n, base) = ln(n) / ln(10)
 abs(n) = (#IF n, n) + (#IF -n, -n)
 sign(n) = (#IF n, 1) + (#IF -n, -1)
-fullif(cond, gr, ls, zer) = (#IF sign(cond), gr) + (#IF sign(-cond), ls) + (#IF -(sign(cond)^2) + 1, zer)  #COM cond>0 => gr, cond<0 => ls, cond=0 => zer
+ifex(cond, gr, ls, zer) = (#IF sign(cond), gr) + (#IF sign(-cond), ls) + (#IF -(sign(cond)^2) + 1, zer)  #COM cond>0 => gr, cond<0 => ls, cond=0 => zer
 
 if0(n, k) = #IF n, k
 if1(n, k) = (#IF n, k-1) + 1
 )";
-    // string code = "";
-    code += readFromFile("code.mthl");
+    RootNode prologueRootNode;
+    try {
+        Lexer prologueLexer = Lexer(prologue, true);
+        Parser prologueParser = Parser(prologueLexer.tokenList, true);
+        prologueRootNode = std::move(prologueParser.rootNode);
+    } catch (LexerException e) {
+        auto msg = e.what();
+        throw LexerException("PROLOGUE COMPILE UNEXPECTED ERROR: " + std::string(msg));
+    } catch (ParserException e) {
+        auto msg = e.what();
+        throw ParserException("PROLOGUE COMPILE UNEXPECTED ERROR: " + std::string(msg));
+    } catch (RunnerException e) {
+        auto msg = e.what();
+        throw RunnerException("PROLOGUE COMPILE UNEXPECTED ERROR: " + std::string(msg));
+    }
+    return prologueRootNode;
+}
+
+// Код очень загрязнился и в нём, скорее всего, появилось много ошибок. Его нужно будет почистить и сделать код ревью
+int main() {
+    RootNode prologueRootNode = getPrologueRootNode();
+    auto& prologueAST = prologueRootNode.instructions;
+
+    string code = readFromFile("code.mthl");
     Lexer lexer = Lexer(code, true);
     Parser parser = Parser(lexer.tokenList, true);
+
+    parser.rootNode.instructions.insert(
+        parser.rootNode.instructions.begin(),
+        std::make_move_iterator(prologueAST.begin()),
+        std::make_move_iterator(prologueAST.end())
+    );
+
     Runner runner = Runner(parser.rootNode);
     runner.run();
-
-    // NumberValue num1 = NumberValue(symcomp::Log(symcomp::Number {5, 0}));
-    // NumberValue num2 = NumberValue(symcomp::Log(symcomp::Number {2}));
-    // NumberValue num3 = NumberValue(symcomp::NumberWrapper {9, 0});
-    // NumberValue answer = num1 + num2;
-    // NumberValue answer = NumberValue(symcomp::Exponent(
-    //     std::make_shared<symcomp::NumberWrapper>(3, 7),
-    //     std::make_shared<symcomp::NumberWrapper>(25, -1)
-    // ));
-    // auto forcedAnswer = answer.inner->forcedCalc();
-    // std::string strAnswer = NumberValue::getAsString(forcedAnswer);
-    // // cout << "SUM OF LOGS: LOG(5) + LOG(2) = " << strAnswer << " (" << forcedAnswer.mantissa << " " << forcedAnswer.exponent << ")" << endl;
-    // cout << "50^0.2 = " << strAnswer << " (" << forcedAnswer.mantissa << " " << forcedAnswer.exponent << ")" << endl;
     return 0;
 }

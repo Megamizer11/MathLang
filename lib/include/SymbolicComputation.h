@@ -9,6 +9,12 @@
 
 #include "exceptions.h"
 
+// Все static Number get функции применяются в двух случаях: когда выражение можно упростить без потери точности: 2^3 = 8
+// или когда выражение должно быть полностью просчитано, например при выводе на экран: 1/3 должно превратиться в 0.3333333
+
+// Все formed функции нужны для попытки упрощения выражения: Add(1, 2).formed() => 3
+// если выражение нельзя упростить, оно не меняется: Log(2).formed() => Log(2)
+
 namespace symcomp
 {
     using longlong = long long;
@@ -141,6 +147,15 @@ namespace symcomp
         return result;
     }
 
+    inline bool isInt(long double num) {
+        return std::trunc(num) == num;
+    }
+
+    // Это должен быть признак Паскаля. Но проще разделить n на m и проверить, является ли результат целым числом
+    // inline long long fullDivisibilityTest(long long n, long long m) {  // Признак делимости n на m, m - любое целое число
+    //     int lenOfN = floor(log10(n)) + 1;
+    // }
+
     struct Add : Base {
         // Base arg1;  // Если сделать такой тип, то произойдёт срезка объекта (object slicing), так как Base весит всего 4 байта
         std::shared_ptr<Base> arg1;
@@ -206,11 +221,6 @@ namespace symcomp
         }
     
     private:
-        // template<typename TT1, typename TT2>
-        // static Mult get(const TT1& left, const TT2& right) {
-        //     return Mult(left, right);
-        // }
-
         static Number get(const Number& left, const Number& right, bool divisionMode) {
             // С умножением всё проще, чем с делением: выражение 18*10^5 * 255*10^2 можно записать в виде: (18*255)*10^(5+2)
             // Точность long long ~= 9.2*10^18, при умножении чисел, максимальная длина ответа (примерно) складывается из длин умножаемых чисел
@@ -326,6 +336,7 @@ namespace symcomp
         }
     };
 
+    // Натуральный логарифм
     struct Log : Base {
         std::shared_ptr<Base> arg;
 
@@ -390,19 +401,40 @@ namespace symcomp
         // Свойство логарифмов: log_a(b) + log_a(c) = log_a(b*c)
         if (Log* leftLog = dynamic_cast<Log*>(arg1.get())) {
             if (Log* rightLog = dynamic_cast<Log*>(arg2.get())) {
-                auto result = Mult(leftLog->arg, rightLog->arg, false).formed();
-                return std::make_shared<Log>(result);
+                auto newLogArg = Mult(leftLog->arg, rightLog->arg, false).formed();
+                // auto result = Log(newLogArg);
+                return std::make_shared<Log>(newLogArg);
             }
         }
 
         return std::make_shared<Add>(this->arg1, this->arg2, this->subtractionMode);
     }
 
+    // Эта функция несиметричная: a*10^b преобразуется, а (10^b)*a уже нет
     inline std::shared_ptr<Base> Mult::formed() {
         if (NumberWrapper* leftNum = dynamic_cast<NumberWrapper*>(arg1.get())) {
             if (NumberWrapper* rightNum = dynamic_cast<NumberWrapper*>(arg2.get())) {
-                auto result = Mult::get(leftNum->num, rightNum->num, this->divisionMode);
-                return std::make_shared<NumberWrapper>(result);
+                if (!this->divisionMode) {  // Умножение всегда происходит без потери точности
+                    auto result = Mult::get(leftNum->num, rightNum->num, false);
+                    return std::make_shared<NumberWrapper>(result);
+                }
+                // Деление
+                double testResult = static_cast<double>(leftNum->mantissa) / rightNum->mantissa;
+                if (isInt(testResult)) {  // rightNum делится на leftNum без остатка
+                    auto result = Mult::get(leftNum->num, rightNum->num, true);
+                    return std::make_shared<NumberWrapper>(result);
+                }
+            }
+
+            // Есть выражение a * b/c, так как b не делится на c (иначе бы b/c схлопнулось), то мы пытаемся перегруппировать выражение: b * a/c,
+            // чтобы, возможно, a/c упростилось: 3 * (2/3) => 2 * (3/3) => 2 * 1 => 2
+            if (Mult* rightDiv = dynamic_cast<Mult*>(arg2.get())) {
+                if (rightDiv->divisionMode) {
+                    auto newDivision = Mult(arg1, rightDiv->arg2, true)  // Мы используем arg1, а не leftNum, так как у Mult нет конструктора Mult(Base, shared_ptr<Base>)
+                                                                       .formed();  // Пытаемся упростить новое выражение
+                    auto result = Mult(rightDiv->arg1, newDivision, this->divisionMode);
+                    return std::make_shared<Mult>(result);
+                }
             }
             if (Exponent* rightExp = dynamic_cast<Exponent*>(arg2.get())) {
                 // Выражение вида (mant1*10^exp1)*10^(mant2*10^exp2) = mant1 * 10^(exp1 + mant2*10^exp2)
@@ -415,15 +447,18 @@ namespace symcomp
                         return std::make_shared<NumberWrapper>(result);
                     }
                 }
-                // Свойство: a^b * a^c = a^(b+c)
-                if (Exponent* leftExp = dynamic_cast<Exponent*>(arg1.get())) {
-                    if (equals(leftExp->base, rightExp->base)) {
-                        auto result = Exponent(
-                            leftExp->base,
-                            Add(leftExp->exp, rightExp->exp, false).formed()
-                        );
-                        return std::make_shared<Exponent>(result);
-                    }
+            }
+        }
+
+        // Свойство: a^b * a^c = a^(b+c)
+        if (Exponent* leftExp = dynamic_cast<Exponent*>(arg1.get())) {
+            if (Exponent* rightExp = dynamic_cast<Exponent*>(arg2.get())) {
+                if (equals(leftExp->base, rightExp->base)) {
+                    auto result = Exponent(
+                        leftExp->base,
+                        Add(leftExp->exp, rightExp->exp, false).formed()
+                    );
+                    return std::make_shared<Exponent>(result);
                 }
             }
         }

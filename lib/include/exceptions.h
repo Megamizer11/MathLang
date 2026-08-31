@@ -20,6 +20,34 @@ inline std::string safe_to_string(const std::string& arg) { return arg; }
 inline std::string safe_to_string(const char* arg) { return arg; }
 
 
+class LexerException : public std::exception {
+private:
+    std::string message;
+public:
+    LexerException(std::string msg) {
+        message = msg;
+    }
+
+    template<typename... Args>
+    LexerException(std::string msg, const Args&... args) {
+        message = msg;
+        
+        constexpr int argsLen = sizeof...(Args);
+        std::vector<std::string> vecOfArgs = {safe_to_string(args)...};
+        for (int i = 0; i < argsLen; i++) {
+            std::string repl = "{" + std::to_string(i) + "}";
+            std::string arg = vecOfArgs.at(i);
+            if (message.find(repl) != std::string::npos)
+                message.replace(message.find(repl), repl.length(), arg);
+        }
+    }
+
+    virtual const char* what() const noexcept override {
+        return message.c_str();
+    }
+};
+
+
 class ParserException : public std::exception {
 private:
     std::string message;

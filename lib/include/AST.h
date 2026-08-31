@@ -3,6 +3,7 @@
 #include <vector>
 #include <memory>
 #include <iostream>
+#include <string>
 
 #include "tokens.h"
 // #include "RunValues.h"  // Зависимости AST от runtime быть не должно, это временное (наверное) решение
@@ -35,6 +36,7 @@ public:
 class RootNode : public ExpressionNode {  // эквивалентно StatementsNode
 public:
     std::vector<std::unique_ptr<ExpressionNode>> instructions {};  // сделав инстуркции expression, а не statement нодами, будет разрешены строки по типу 1+2;
+    // std::string tag = "";  // Необязательное поле, нужен при выводе ошибок
 
     void addNode(std::unique_ptr<ExpressionNode> node) {
         instructions.push_back(std::move(node));
