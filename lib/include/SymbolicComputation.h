@@ -42,6 +42,7 @@ namespace symcomp
         virtual void printTree(int indent = 0) {
             throw RunnerException("Symbolic computations printTree() error: raw Base");
         }
+        virtual std::shared_ptr<Base> getDerivative();
     };
 
     struct NumberWrapper : Base {
@@ -59,6 +60,8 @@ namespace symcomp
             this->num = num;
         }
 
+        std::shared_ptr<Base> getDerivative() override;
+
         Number forcedCalc() const {
             return Number {num.mantissa, num.exponent};
         };
@@ -74,6 +77,8 @@ namespace symcomp
         ConstWrapper(Const constType) {
             this->constType = constType;
         }
+
+        std::shared_ptr<Base> getDerivative() override;
 
         Number forcedCalc() const {
             switch (constType) {
@@ -94,6 +99,20 @@ namespace symcomp
                 default: name = "NONE"; break;
             }
             std::cout << std::string(indent*2, ' ') << "CONST: " << name << std::endl;
+        }
+    };
+
+    struct Variable : Base {
+        std::string name;
+
+        Variable(std::string name) {
+            this->name = name;
+        }
+
+        std::shared_ptr<Base> getDerivative() override;
+
+        Number forcedCalc() const {
+            throw RunnerException("Symbolic computations undefined variable \"{0}\" value error", this->name);
         }
     };
 
@@ -196,6 +215,7 @@ namespace symcomp
         }
         
         std::shared_ptr<Base> formed();
+        std::shared_ptr<Base> getDerivative() override;
 
         Number forcedCalc() const override {
             return get(arg1->forcedCalc(), arg2->forcedCalc(), subtractionMode);
@@ -235,6 +255,7 @@ namespace symcomp
         }
         
         std::shared_ptr<Base> formed();
+        std::shared_ptr<Base> getDerivative() override;
 
         Number forcedCalc() const override {
             return get(arg1->forcedCalc(), arg2->forcedCalc(), divisionMode);
@@ -284,6 +305,7 @@ namespace symcomp
         }
         
         std::shared_ptr<Base> formed();
+        std::shared_ptr<Base> getDerivative() override;
 
         bool isPurelyComputable() {  // возвращает true, только если выражение может быть моментально посчитано без потери точности
             return true;
@@ -376,6 +398,7 @@ namespace symcomp
         }
         
         std::shared_ptr<Base> formed();
+        std::shared_ptr<Base> getDerivative() override;
 
         Number forcedCalc() const override {
             return get(arg->forcedCalc());
@@ -560,5 +583,88 @@ namespace symcomp
 
     inline Number toInnerData(const NumberWrapper& num) {
         return Number {num.mantissa, num.exponent};
+    }
+
+    // class Diffrentiation {
+    //     inline std::shared_ptr<Base> NumberWrapper::getDerivative() override {
+    //         return std::make_shared<NumberWrapper>(0, 0);
+    //     }
+    // };
+
+    inline std::shared_ptr<Base> Base::getDerivative() {
+        throw RunnerException("Symbolic computations getDerivative() error: raw Base");
+    }
+
+    // a' = 0
+    inline std::shared_ptr<Base> NumberWrapper::getDerivative() {
+        return std::make_shared<NumberWrapper>(0, 0);
+    }
+
+    // c' = 0
+    inline std::shared_ptr<Base> ConstWrapper::getDerivative() {
+        return std::make_shared<NumberWrapper>(0, 0);
+    }
+
+    // (f + g)' = f' + g'
+    // (f - g)' = f' - g'
+    inline std::shared_ptr<Base> Add::getDerivative() {
+        if (dynamic_cast<NumberWrapper*>(this->arg1.get()), dynamic_cast<NumberWrapper*>(this->arg2.get()))
+            return std::make_shared<NumberWrapper>(0, 0);
+        return std::make_shared<Add>(this->arg1->getDerivative(), this->arg2->getDerivative(), this->subtractionMode);
+        // return Add(this->arg1->getDerivative(), this->arg2->getDerivative(), this->subtractionMode).getDerivative();
+        // return Add(this->arg1->getDerivative(), this->arg2->getDerivative(), this->subtractionMode).formed();
+    }
+
+    // (f * g)' = f' * g + f * g'
+    // (f / g)' = (f' * g - f * g') / g^2
+    inline std::shared_ptr<Base> Mult::getDerivative() {
+        if (dynamic_cast<NumberWrapper*>(this->arg1.get()), dynamic_cast<NumberWrapper*>(this->arg2.get()))
+            return std::make_shared<NumberWrapper>(0, 0);
+        // return std::make_shared<Add>(
+        //     Mult(this->arg1->getDerivative(), this->arg2, true).formed(),
+        //     Mult(this->arg2->getDerivative(), this->arg1, true).formed(),
+        //     this->divisionMode
+        // );
+        return std::make_shared<Add>(
+            std::make_shared<Mult>(this->arg1->getDerivative(), this->arg2, true),
+            std::make_shared<Mult>(this->arg2->getDerivative(), this->arg1, true),
+            this->divisionMode
+        );
+    }
+
+    // (f(g(x))' = f'(g(x)) * g'(x)
+    inline std::shared_ptr<Base> compositeFuncDerivative() {
+
+    }
+
+    inline std::shared_ptr<Base> Exponent::getDerivative() {
+        if (dynamic_cast<NumberWrapper*>(this->base.get()), dynamic_cast<NumberWrapper*>(this->exp.get()))
+            return std::make_shared<NumberWrapper>(0, 0);
+        
+        // (a^x)' = (a^x) * ln(a)
+        if (dynamic_cast<NumberWrapper*>(this->base.get())) {
+            return std::make_shared<Mult>(
+                std::make_shared<Exponent>(this->base, this->exp),
+                std::make_shared<Log>(this->base),
+                false
+            );
+        }
+
+        // (x^n)' = n * (x^(n-1))
+        if (dynamic_cast<NumberWrapper*>(this->exp.get())) {
+            return std::make_shared<Mult>(
+                // std::make_shared<NumberWrapper>(this->exp),
+                this->exp,
+                std::make_shared<Exponent>(
+                    this->base,
+                    std::make_shared<Add>(this->exp, std::make_shared<NumberWrapper>(-1, 1), false)
+                ),
+                false
+            );
+        }
+    }
+
+    inline std::shared_ptr<Base> Log::getDerivative() {
+        return std::make_shared<Mult>(std::make_shared<NumberWrapper>(1, 0), this->arg, true);
     }
 }
