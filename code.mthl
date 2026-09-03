@@ -1,10 +1,2 @@
-#SYM_TREE
-ln(
-    e ^ (
-        e ^ (
-            ln(2)
-            +
-            ln(3)
-        )
-    )
-)
+f(x) = 2 * x
+#SYM_TREE #DERIV f

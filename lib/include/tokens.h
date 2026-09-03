@@ -47,7 +47,8 @@ struct TokenTypes {
         TokenType("SYMBOLIC_TREE", LexState::UNIQUE,      "#SYM_TREE" ),  // Работает на уровне парсера и раннера
         TokenType("IF",            LexState::UNIQUE,      "#IF"       ),  // Работает на уровне парсера и раннера
         TokenType("CONST_E",       LexState::UNIQUE,      "#E"        ),  // Работает на уровне парсера
-        TokenType("CONST_PI",      LexState::UNIQUE,      "#PI"       )   // Работает на уровне парсера
+        TokenType("CONST_PI",      LexState::UNIQUE,      "#PI"       ),  // Работает на уровне парсера
+        TokenType("DERIVATIVE",    LexState::UNIQUE,      "#DERIV"    ),  // Работает на уровне парсера и раннера
     };
 
     TokenType& IDENTIFIER()    { return data[0];  }
@@ -71,6 +72,7 @@ struct TokenTypes {
     TokenType& IF()            { return data[18]; }
     TokenType& CONST_E()       { return data[19]; }
     TokenType& CONST_PI()      { return data[20]; }
+    TokenType& DERIVATIVE()    { return data[21]; }  // Производная
 
     std::size_t size() const {
         return data.size();

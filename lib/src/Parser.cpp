@@ -231,6 +231,19 @@ unique_ptr<ExpressionNode> Parser::parseExpression() {
         args.push_back(move(trueResult));
         return make_unique<SideEffectFuncNode>(*ifToken, move(args));
     }
+    if (Token* derivToken = match(tokenTypes.DERIVATIVE())) {  // Использование: f(x) = x^2; #SYM_TREE #DERIV f  // MULT: NUMBER: 2, VARIABLE: x
+        // Token *functionNameToken = match(tokenTypes.IDENTIFIER());
+        // cout << "AA " << functionNameToken->literal << endl;
+
+        // vector<std::unique_ptr<ExpressionNode>> args = {};
+        // return make_unique<SideEffectFuncNode>(*functionNameToken, move(args));
+
+        unique_ptr<VariableNode> funcNameNode = parseVariable();
+
+        vector<std::unique_ptr<ExpressionNode>> args = {};
+        args.push_back(move(funcNameNode));
+        return make_unique<SideEffectFuncNode>(*derivToken, move(args));
+    }
     return parsePlusMinus();
 }
 

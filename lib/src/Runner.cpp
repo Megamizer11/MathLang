@@ -7,7 +7,6 @@
 
 using std::cout;
 using std::endl;
-using std::runtime_error;
 using std::string;
 using std::vector;
 using std::to_string;
@@ -26,7 +25,7 @@ NumberValue asNumberValue(const Value& val) {
         // return NumberValue {valDec->mantissa, valDec->exponent};
         return *valNum;
     } else {
-        throw runtime_error("Runner > asFloatType error (must never happen): this value can\'t be float");
+        throw RunnerException("Runner > asFloatType error (must never happen): this value can\'t be float");
     }
 }
 
@@ -34,16 +33,16 @@ NumberValue& asNumberValueOriginal(Value& val) {
     if (NumberValue* valDec = mpark::get_if<NumberValue>(&val)) {
         return *valDec;  // Не создаём копию, возввращаем оригинпльный объект, но с другим типом
     } else {
-        throw runtime_error("Runner > asFloatType error (must never happen): this value can\'t be float");
+        throw RunnerException("Runner > asFloatType error (must never happen): this value can\'t be float");
     }
 }
 
 Value BaseNode::runNode(VariableScope& varScope) {
-    throw runtime_error("BaseNode::runNode error: BaseNode is not runnable");
+    throw RunnerException("BaseNode::runNode error: BaseNode is not runnable");
 }
 
 Value ExpressionNode::runNode(VariableScope& varScope) {
-    throw runtime_error("ExpressionNode::runNode error: ExpressionNode is not runnable");
+    throw RunnerException("ExpressionNode::runNode error: ExpressionNode is not runnable");
 }
  
 Value NumberNode::runNode(VariableScope& varScope) {
@@ -60,6 +59,8 @@ Value NumberNode::runNode(VariableScope& varScope) {
 
 Value VariableNode::runNode(VariableScope& varScope) {
     string lit = this->varToken.literal;
+    if (!varScope.isVarInScope(lit))
+        return NumberValue::getAsVariable(lit);  // При неизвестной переменной, мы не будем кидать ошибку, а поднимем переменную наверх, чтобы узнать, что с ней делать
     const Variable *var = varScope.getByName(lit, varToken);
     return var->value;
 }
@@ -167,6 +168,15 @@ Value SideEffectFuncNode::runNode(VariableScope& varScope) {
         return arg.getNaturalLogged();
     }
     if (this->operToken.type.name == tokenTypes.SYMBOLIC_TREE().name) {
+        // ExpressionNode* argSideFuncNode = this->args[0].get();
+
+        // if (SideEffectFuncNode* sideFuncNode = dynamic_cast<SideEffectFuncNode*>(argSideFuncNode)) {
+        //     if (sideFuncNode->operToken.type.name == tokenTypes.DERIVATIVE().name) {
+                
+        // NumberValue valueTree = asNumberValue(functionValue->body->runNode(varScope));
+        //     }
+        // }
+
         NumberValue arg = asNumberValue(this->args[0]->runNode(varScope));
         arg.printAsSymbolicTree();
     }
@@ -177,6 +187,22 @@ Value SideEffectFuncNode::runNode(VariableScope& varScope) {
             return trueResult;
         }
         return NumberValue {0, 0};
+    }
+    if (this->operToken.type.name == tokenTypes.DERIVATIVE().name) {
+        // string functionName = this->operToken.literal;
+        // const FunctionValue* functionValue = varScope.getFunctionByName(functionName, this->operToken);
+        // // NumberValue valueTree = asNumberValue(functionValue->body->runNode(varScope));
+        // return *functionValue;
+        ExpressionNode* argFuncNameNode = this->args[0].get();
+
+        if (VariableNode* varNode = dynamic_cast<VariableNode*>(argFuncNameNode)) {
+            string functionName = varNode->varToken.literal;
+            const FunctionValue* functionValue = varScope.getFunctionByName(functionName, this->operToken);
+            NumberValue funcBodyTree = asNumberValue(functionValue->body->runNode(varScope));
+            NumberValue derivTree = funcBodyTree.getDerivative();
+            cout << "BB " << functionName << endl;
+            return derivTree;
+        }
     }
     return NumberValue {0, 0};
 }
@@ -208,12 +234,12 @@ Value FunctionCallNode::runNode(VariableScope& varScope) {
     
     VariableScope localScope = varScope;  // Копирование, после завершения FunctionCallNode::runNode localScope автоматически удалится
     // На примере: f(x) = x^2; f(5+2)
-    int DEBUG_RES;
+    // int DEBUG_RES;
     for (int i = 0; i < this->args.size(); i++) {
         ExpressionNode* givenArg = this->args[i].get();  // Указатель на ExpressionNode("5+2")
         Value givenResult = givenArg->runNode(varScope);  // Считаем результат (5+2=7), тогда givenResult это NumberValue(7)
         // auto DEBUG_RES = asNumberValue(givenResult).inner->forcedCalc().mantissa;
-        DEBUG_RES = asNumberValue(givenResult).inner->forcedCalc().mantissa;
+        // DEBUG_RES = asNumberValue(givenResult).inner->forcedCalc().mantissa;
 
         VariableNode* requiredArg = functionValue->args[i];  // Указатель на VariableNode("x")
         string requiredArgName = requiredArg->varToken.literal;  // Получаем имя "x"

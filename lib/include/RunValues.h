@@ -38,6 +38,7 @@ struct NumberValue {
     // long exponent;       // Для числа 12.345 это -3, для 12000 это 3, экспонента может быть отрицательной
 
     std::shared_ptr<symcomp::Base> inner = nullptr;
+    // std::shared_ptr<symcomp::Base> unwrappedInner = nullptr;
 
     NumberValue(const symcomp::Number& tree) {  // По факту внутренний API для символьного вычисления
         inner = std::make_shared<symcomp::NumberWrapper>(tree);
@@ -86,6 +87,11 @@ struct NumberValue {
     // std::string getAsString() const {
     //     return getLiteralFromMantissaAndExponent(mantissa, exponent);
     // }
+
+    // NumberValue& withUnwrappedInner(std::shared_ptr<symcomp::Base> unwrappedInner) {
+    //     this->unwrappedInner = unwrappedInner;
+    //     return *this;
+    // }
     
     static std::string getNumberAsString(symcomp::Number num) {
         return getLiteralFromMantissaAndExponent(num.mantissa, num.exponent);
@@ -117,6 +123,7 @@ struct NumberValue {
             rightNumberValue.inner,
             false
         ).formed();
+        // return NumberValue(result.formed()).withUnwrappedInner(std::make_shared<symcomp::Add>(result));
         return NumberValue(result);
     }
 
@@ -177,8 +184,23 @@ struct NumberValue {
         return (forcedCalcThis.mantissa == forcedCalcRight.mantissa) && (forcedCalcThis.exponent == forcedCalcRight.exponent);
     };
 
+    // std::shared_ptr<Base> getUnwrappedTree() {}
+
     void printAsSymbolicTree() {
         this->inner->printTree();
+    }
+
+    static NumberValue getAsVariable(std::string varName) {
+        return NumberValue(std::make_shared<symcomp::Variable>(varName));
+    }
+
+    NumberValue getDerivative() {
+        return NumberValue(this->inner->getDerivative());
+    }
+
+    // Проверяет, может ли выражение быть вычислено (может, когда в нём нет переменных): 3+2 вычислимое, 3+x невычислимое
+    bool isCalculatable() {
+        return symcomp::isCalculatable(this->inner);
     }
 };
 
@@ -220,6 +242,10 @@ inline std::ostream& operator<<(std::ostream& os, const Value& valueType) {
 
     return os;
 }
+
+// inline NumberValue NumberValue::getDerivative() {
+//     return NumberValue(this->inner->getDerivative());
+// }
 
 struct Variable {
     std::string name;

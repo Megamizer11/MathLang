@@ -114,6 +114,10 @@ namespace symcomp
         Number forcedCalc() const {
             throw RunnerException("Symbolic computations undefined variable \"{0}\" value error", this->name);
         }
+
+        void printTree(int indent = 0) {
+            std::cout << std::string(indent*2, ' ') << "VARIABLE: " << this->name << std::endl;
+        }
     };
 
     // Убирает нули у мантиссы: Number {1500, 3} -> Number {15, 5}
@@ -585,6 +589,26 @@ namespace symcomp
         return Number {num.mantissa, num.exponent};
     }
 
+    // Проверяет, может ли выражение быть вычислено (может, когда в нём нет переменных): 3+2 вычислимое, 3+x невычислимое
+    inline bool isCalculatable(std::shared_ptr<Base> tree) {
+        if (dynamic_cast<NumberWrapper*>(tree.get()) || dynamic_cast<ConstWrapper*>(tree.get())) {
+            return true;
+        } else if (dynamic_cast<Variable*>(tree.get())) {
+            return false;
+        }
+        
+        if (Add* val = dynamic_cast<Add*>(tree.get())) {
+            return isCalculatable(val->arg1) && isCalculatable(val->arg2);
+        } else if (Mult* val = dynamic_cast<Mult*>(tree.get())) {
+            return isCalculatable(val->arg1) && isCalculatable(val->arg2);
+        } else if (Exponent* val = dynamic_cast<Exponent*>(tree.get())) {
+            return isCalculatable(val->base) && isCalculatable(val->exp);
+        } else if (Log* val = dynamic_cast<Log*>(tree.get())) {
+            return isCalculatable(val->arg);
+        }
+        throw RunnerException("Symbolic computations isCalculatable() error: undefined type");
+    }
+
     // class Diffrentiation {
     //     inline std::shared_ptr<Base> NumberWrapper::getDerivative() override {
     //         return std::make_shared<NumberWrapper>(0, 0);
@@ -605,6 +629,11 @@ namespace symcomp
         return std::make_shared<NumberWrapper>(0, 0);
     }
 
+    // x' = 1
+    inline std::shared_ptr<Base> Variable::getDerivative() {
+        return std::make_shared<NumberWrapper>(1, 0);
+    }
+
     // (f + g)' = f' + g'
     // (f - g)' = f' - g'
     inline std::shared_ptr<Base> Add::getDerivative() {
@@ -618,18 +647,41 @@ namespace symcomp
     // (f * g)' = f' * g + f * g'
     // (f / g)' = (f' * g - f * g') / g^2
     inline std::shared_ptr<Base> Mult::getDerivative() {
-        if (dynamic_cast<NumberWrapper*>(this->arg1.get()), dynamic_cast<NumberWrapper*>(this->arg2.get()))
+        if (dynamic_cast<NumberWrapper*>(this->arg1.get()) && dynamic_cast<NumberWrapper*>(this->arg2.get()))
             return std::make_shared<NumberWrapper>(0, 0);
+        // if (dynamic_cast<NumberWrapper*>(this->arg1.get()))
+        auto a1 = this->arg1->getDerivative();
+        auto a0 = this->arg2;
+        // std::cout << "A1" << std::endl;
+        // a1->printTree();
+        // auto a2 = this->arg2->getDerivative();
+        // std::cout << "A2" << std::endl;
+        // a2->printTree();
         // return std::make_shared<Add>(
-        //     Mult(this->arg1->getDerivative(), this->arg2, true).formed(),
-        //     Mult(this->arg2->getDerivative(), this->arg1, true).formed(),
+        //     std::make_shared<Mult>(a1, this->arg2, false),
+        //     std::make_shared<Mult>(a2, this->arg1, false),
         //     this->divisionMode
         // );
-        return std::make_shared<Add>(
-            std::make_shared<Mult>(this->arg1->getDerivative(), this->arg2, true),
-            std::make_shared<Mult>(this->arg2->getDerivative(), this->arg1, true),
-            this->divisionMode
-        );
+        // auto a1 = std::make_shared<Mult>(a1, this->arg2, false)
+
+        // if (Variable* v = dynamic_cast<Variable*>(this->arg2.get())) {
+        //     std::cout << "V " << v->name << std::endl;
+        // }
+        // return std::make_shared<Add>(
+        //     this->arg2->getDerivative(),
+        //     this->arg2,
+        //     this->divisionMode
+        // );
+        
+        // return std::make_shared<Add>(
+        //     std::make_shared<Mult>(this->arg1->getDerivative(), this->arg2, false),
+        //     std::make_shared<Mult>(this->arg2->getDerivative(), this->arg1, false),
+        //     this->divisionMode
+        // );
+
+        std::shared_ptr<Base> arg1 = Mult(this->arg1->getDerivative(), this->arg2, false).formed();
+        std::shared_ptr<Base> arg2 = Mult(this->arg2->getDerivative(), this->arg1, false).formed();
+        return std::make_shared<Add>(arg1, arg2, this->divisionMode);
     }
 
     // (f(g(x))' = f'(g(x)) * g'(x)
